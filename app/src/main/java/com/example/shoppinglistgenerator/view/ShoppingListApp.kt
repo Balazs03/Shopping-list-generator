@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -107,8 +108,9 @@ fun ShoppingListApp(modifier: Modifier = Modifier) {
                     arguments = listOf(navArgument(Routes.RECIPE_ID_ARG) { type = NavType.StringType })
                 ) { backStackEntry ->
                     val recipeId = backStackEntry.arguments?.getString(Routes.RECIPE_ID_ARG)
+                    val recipes by recipeViewModel.allRecipes.collectAsStateWithLifecycle()
                     RecipeDetailScreen(
-                        recipe = recipeId?.let(recipeViewModel::getRecipeById),
+                        recipe = recipes.find { it.id == recipeId },
                         onBackClick = { navController.navigateUp() },
                         // TODO: add the ingredients to the shopping list / pantry
                         onCookClick = {}

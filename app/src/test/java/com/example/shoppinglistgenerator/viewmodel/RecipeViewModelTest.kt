@@ -1,17 +1,41 @@
 package com.example.shoppinglistgenerator.viewmodel
 
+import com.example.shoppinglistgenerator.model.Recipe
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class RecipeViewModelTest {
+
+    private val testRecipes = listOf(
+        Recipe(id = "paradicsomos-spagetti", name = "Paradicsomos spagetti"),
+        Recipe(id = "tejfolos-krumplileves", name = "Tejfölös krumplileves"),
+        Recipe(id = "lecso", name = "Lecsó")
+    )
 
     private lateinit var viewModel: RecipeViewModel
 
     @Before
     fun setUp() {
-        viewModel = RecipeViewModel()
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModel = RecipeViewModel(flowOf(testRecipes))
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -19,7 +43,36 @@ class RecipeViewModelTest {
         val state = viewModel.uiState.value
 
         assertEquals("", state.searchQuery)
-        assertEquals(RecipeViewModel.hardcodedRecipes, state.recipes)
+        assertFalse(state.isLoading)
+        assertEquals(testRecipes, state.recipes)
+        assertEquals(testRecipes, viewModel.allRecipes.value)
+    }
+
+    @Test
+    fun beforeFirstEmission_isLoading() {
+        val loadingViewModel = RecipeViewModel(MutableSharedFlow())
+
+        assertTrue(loadingViewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun failedLoad_setsLoadFailed() {
+        val failingViewModel = RecipeViewModel(flow { throw IllegalStateException("PERMISSION_DENIED") })
+
+        val state = failingViewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertTrue(state.loadFailed)
+    }
+
+    @Test
+    fun newEmission_keepsSearchQueryApplied() {
+        val source = MutableSharedFlow<List<Recipe>>(extraBufferCapacity = 1)
+        val liveViewModel = RecipeViewModel(source)
+        liveViewModel.onSearchQueryChange("leves")
+
+        source.tryEmit(testRecipes)
+
+        assertEquals(listOf("Tejfölös krumplileves"), liveViewModel.uiState.value.recipes.map { it.name })
     }
 
     @Test
@@ -50,18 +103,13 @@ class RecipeViewModelTest {
         viewModel.onSearchQueryChange("leves")
         viewModel.onSearchQueryChange("")
 
-        assertEquals(RecipeViewModel.hardcodedRecipes, viewModel.uiState.value.recipes)
+        assertEquals(testRecipes, viewModel.uiState.value.recipes)
     }
 
     @Test
-    fun getRecipeById_returnsMatchingRecipe() {
-        val recipe = viewModel.getRecipeById("paradicsomos-spagetti")
+    fun search_doesNotAffectAllRecipes() {
+        viewModel.onSearchQueryChange("leves")
 
-        assertEquals("Paradicsomos spagetti", recipe?.name)
-    }
-
-    @Test
-    fun getRecipeById_withUnknownId_returnsNull() {
-        assertNull(viewModel.getRecipeById("nem-letezo-recept"))
+        assertEquals(testRecipes, viewModel.allRecipes.value)
     }
 }

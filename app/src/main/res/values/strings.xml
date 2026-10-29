@@ -11,6 +11,7 @@
     <string name="recipes_title">Receptek</string>
     <string name="search_placeholder">Keresés...</string>
     <string name="no_results">Nincs találat</string>
+    <string name="recipes_load_failed">Nem sikerült betölteni a recepteket</string>
 
     <!-- Recipe detail -->
     <string name="recipe_detail_title">Recept</string>

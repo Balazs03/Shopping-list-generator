@@ -41,7 +41,6 @@ import com.example.shoppinglistgenerator.model.Recipe
 import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
 import com.example.shoppinglistgenerator.view.components.RecipeImage
 import com.example.shoppinglistgenerator.view.components.recipeMetaText
-import com.example.shoppinglistgenerator.viewmodel.RecipeViewModel
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -223,7 +222,7 @@ private fun RecipeDetailScreenPreview() {
     ShoppingListGeneratorTheme {
         Surface {
             RecipeDetailScreen(
-                recipe = RecipeViewModel.hardcodedRecipes.first(),
+                recipe = previewRecipes.first(),
                 onBackClick = {},
                 onCookClick = {}
             )

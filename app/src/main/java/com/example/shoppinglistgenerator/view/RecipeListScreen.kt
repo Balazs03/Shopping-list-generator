@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -101,19 +102,16 @@ fun RecipeListContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (uiState.recipes.isEmpty()) {
-            Box(
+        when {
+            uiState.isLoading -> Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = stringResource(R.string.no_results),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                CircularProgressIndicator()
             }
-        } else {
-            LazyColumn(
+            uiState.loadFailed -> CenteredMessage(stringResource(R.string.recipes_load_failed))
+            uiState.recipes.isEmpty() -> CenteredMessage(stringResource(R.string.no_results))
+            else -> LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
@@ -125,6 +123,23 @@ fun RecipeListContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CenteredMessage(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -218,7 +233,7 @@ private fun RecipeListContentPreview() {
     ShoppingListGeneratorTheme {
         Surface {
             RecipeListContent(
-                uiState = RecipeListUiState(recipes = RecipeViewModel.hardcodedRecipes),
+                uiState = RecipeListUiState(recipes = previewRecipes, isLoading = false),
                 onSearchQueryChange = {},
                 onRecipeClick = {}
             )
