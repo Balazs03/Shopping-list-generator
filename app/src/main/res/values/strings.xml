@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">Shopping List Generator</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_pantry">Kamra</string>
+    <string name="nav_recipes">Receptek</string>
+    <string name="nav_shopping_list">Lista</string>
+    <string name="coming_soon">Hamarosan</string>
+
+    <!-- Recipe list -->
+    <string name="recipes_title">Receptek</string>
+    <string name="search_placeholder">Keresés...</string>
+    <string name="no_results">Nincs találat</string>
+
+    <!-- Recipe detail -->
+    <string name="recipe_detail_title">Recept</string>
+    <string name="back">Vissza</string>
+    <string name="recipe_not_found">A recept nem található</string>
+    <string name="ingredients_title">Hozzávalók</string>
+    <string name="preparation_title">Elkészítés</string>
+    <string name="cook_button">Elkészítem</string>
+    <string name="step_format">%1$d. %2$s</string>
+
+    <!-- Recipe meta -->
+    <string name="prep_time_minutes">%1$d perc</string>
+    <string name="servings">%1$d adag</string>
+    <string name="difficulty_easy">Könnyű</string>
+    <string name="difficulty_medium">Közepes</string>
+    <string name="difficulty_hard">Nehéz</string>
 </resources>
