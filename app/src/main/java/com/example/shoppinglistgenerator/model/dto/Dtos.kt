@@ -7,7 +7,7 @@ data class UserDto(
     val userId: String = "",
     val email: String = "",
     val name: String = "",
-    val pantryIds: List<String> = emptyList()
+    val pantries: List<String> = emptyList()
 )
 
 data class ItemDto(
