@@ -1,6 +1,5 @@
 package com.example.shoppinglistgenerator.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,35 +8,50 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Green80,
+    onPrimary = OnGreen20,
+    primaryContainer = GreenContainer30,
+    onPrimaryContainer = OnGreenContainer90,
+    secondaryContainer = GreenContainer30,
+    onSecondaryContainer = OnGreenContainer90,
+    background = Dark10,
+    onBackground = OnDark90,
+    surface = Dark10,
+    onSurface = OnDark90,
+    surfaceContainerLowest = SurfaceContainerLowestDark,
+    surfaceContainer = SurfaceContainerDark,
+    surfaceContainerHighest = SurfaceContainerHighestDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    outlineVariant = OutlineVariantDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = Green40,
     onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primaryContainer = GreenContainer90,
+    onPrimaryContainer = OnGreenContainer10,
+    secondaryContainer = GreenContainer90,
+    onSecondaryContainer = OnGreenContainer10,
+    background = Cream98,
+    onBackground = OnCream10,
+    surface = Cream98,
+    onSurface = OnCream10,
+    surfaceContainerLowest = Color.White,
+    surfaceContainer = SurfaceContainerLight,
+    surfaceContainerHighest = SurfaceContainerHighestLight,
+    onSurfaceVariant = OnSurfaceVariantLight,
+    outlineVariant = OutlineVariantLight
 )
 
 @Composable
 fun ShoppingListGeneratorTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Dynamic color is available on Android 12+, but off by default to keep the Figma palette
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
