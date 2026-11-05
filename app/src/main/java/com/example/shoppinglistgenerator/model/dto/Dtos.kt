@@ -13,6 +13,7 @@ data class UserDto(
 data class ItemDto(
     @DocumentId
     val itemId: String = "",
+    val pantry: String = "",
     val name: String = "",
     val unit: String = "",
     val quantity: Double = 0.0,
