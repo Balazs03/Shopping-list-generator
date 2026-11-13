@@ -12,6 +12,7 @@ import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 
 class RecipeRepository(
     private val db: FirebaseFirestore = Firebase.firestore
@@ -25,6 +26,11 @@ class RecipeRepository(
                 .filter { it.name.isNotBlank() } // üres teszt dokumentumok kiszűrése
                 .map { it.toRecipe() }
         }
+
+    /** A globális recepttár összes receptje. */
+    suspend fun getAllRecipes(): Result<List<RecipeDto>> = runCatching {
+        collection.get().await().toObjects(RecipeDto::class.java)
+    }
 }
 
 private fun RecipeDto.toRecipe() = Recipe(
