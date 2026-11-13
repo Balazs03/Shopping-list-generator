@@ -1,7 +1,13 @@
 package com.example.shoppinglistgenerator.navigation
 
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,9 +19,10 @@ import com.example.shoppinglistgenerator.ui.screens.CreateShoppingListScreen
 import com.example.shoppinglistgenerator.ui.screens.PantryDetailScreen
 import com.example.shoppinglistgenerator.ui.screens.PantryItemsScreen
 import com.example.shoppinglistgenerator.ui.screens.PantryJoinScreen
-import com.example.shoppinglistgenerator.ui.screens.RecipeDetailScreen
-import com.example.shoppinglistgenerator.ui.screens.RecipeListScreen
 import com.example.shoppinglistgenerator.ui.screens.ShoppingListDetailScreen
+import com.example.shoppinglistgenerator.view.RecipeDetailScreen
+import com.example.shoppinglistgenerator.view.RecipeListScreen
+import com.example.shoppinglistgenerator.viewmodel.RecipeViewModel
 
 @Composable
 fun AppNavHost(
@@ -23,6 +30,9 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     startDestination: Screen = Screen.PantryItems()
 ) {
+    // Activity-scoped, shared by the recipe list and the recipe detail screen
+    val recipeViewModel: RecipeViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -132,26 +142,34 @@ fun AppNavHost(
 
         // 8. Receptek listája
         composable<Screen.RecipeList> {
-            RecipeListScreen(
-                onRecipeClick = { recipeId ->
-                    navController.navigate(Screen.RecipeDetail(recipeId = recipeId))
-                },
-                onNavigateToPantry = {
-                    navController.navigate(Screen.PantryItems())
-                },
-                onNavigateToList = {
-                    navController.navigate(Screen.CreateShoppingList())
-                }
-            )
+            Scaffold { innerPadding ->
+                RecipeListScreen(
+                    viewModel = recipeViewModel,
+                    onRecipeClick = { recipeId ->
+                        navController.navigate(Screen.RecipeDetail(recipeId = recipeId))
+                    },
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .consumeWindowInsets(innerPadding)
+                )
+            }
         }
 
         // 9. Recept részletei
         composable<Screen.RecipeDetail> { backStackEntry ->
             val route: Screen.RecipeDetail = backStackEntry.toRoute()
-            RecipeDetailScreen(
-                recipeId = route.recipeId,
-                onBackClick = { navController.popBackStack() }
-            )
+            val recipes by recipeViewModel.allRecipes.collectAsStateWithLifecycle()
+            Scaffold { innerPadding ->
+                RecipeDetailScreen(
+                    recipe = recipes.find { it.id == route.recipeId },
+                    onBackClick = { navController.popBackStack() },
+                    // TODO: add the ingredients to the shopping list / pantry
+                    onCookClick = {},
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .consumeWindowInsets(innerPadding)
+                )
+            }
         }
     }
 }
