@@ -25,3 +25,12 @@ val SurfaceContainerDark = Color(0xFF1F201C)
 val SurfaceContainerHighestDark = Color(0xFF2A2B26)
 val OnSurfaceVariantDark = Color(0xFFC5C7BD)
 val OutlineVariantDark = Color(0xFF45483F)
+
+// Színséma definíciók a képernyő vizuális megjelenéséhez
+val ScreenBackgroundColor = Color(0xFFF7F8F3)
+val DarkGreenPrimary = Color(0xFF386641)
+val LightGreenSecondary = Color(0xFFE2EDE0)
+val LightSageBanner = Color(0xFFEAF2E8)
+val TextDarkColor = Color(0xFF1E271D)
+val TextMutedColor = Color(0xFF5E6B5F)
+val BorderLightColor = Color(0xFFE0E5DF)

@@ -23,4 +23,9 @@ class UserRepository(
         // A dokumentum ID-ja pontosan megegyezik az Auth UID-val
         collection.document(uid).set(newUser).await()
     }
+
+    /** Egy felhasználó profilja (pl. a kamráinak ID-jai). null, ha nincs ilyen profil. */
+    suspend fun getUser(uid: String): Result<UserDto?> = runCatching {
+        collection.document(uid).get().await().toObject(UserDto::class.java)
+    }
 }
