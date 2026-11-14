@@ -22,4 +22,36 @@
     <string name="difficulty_easy">Könnyű</string>
     <string name="difficulty_medium">Közepes</string>
     <string name="difficulty_hard">Nehéz</string>
+
+    <!-- Pantry join -->
+    <string name="pantry_join_title">Csatlakozás</string>
+    <string name="pantry_join_headline">Egy kamra, közös készlet.</string>
+    <string name="pantry_join_description">Kérd el a kamra jelkódját a tulajdonostól, és csatlakozz az otthoniakhoz.</string>
+    <string name="pantry_join_code_label">Jelkód megadása</string>
+    <string name="pantry_join_code_hint">A tulajdonostól kapott jelkódot add meg.</string>
+    <string name="pantry_join_button">Csatlakozás</string>
+    <string name="pantry_join_member_title">Tagként csatlakozol</string>
+    <string name="pantry_join_member_description">Megnézheted és szerkesztheted a kamra alapanyagait. Bármikor kiléphetsz, de a kamrát csak a tulajdonos törölheti.</string>
+    <string name="pantry_join_limit_info">Legfeljebb 2 kamrához tartozhatsz. Csatlakozás után mindkét helyed foglalt lesz.</string>
+    <string name="pantry_join_error_empty_code">Add meg a jelkódot!</string>
+    <string name="pantry_join_error_not_found">Nincs ilyen jelkódú kamra.</string>
+    <string name="pantry_join_error_already_member">Már tagja vagy ennek a kamrának.</string>
+    <string name="pantry_join_error_limit">Már 2 kamrához tartozol, előbb lépj ki valamelyikből.</string>
+    <string name="pantry_join_error_generic">Nem sikerült csatlakozni, próbáld újra.</string>
+    <string name="pantry_join_success">Sikeresen csatlakoztál: %1$s</string>
+
+    <!-- Pantry items -->
+    <string name="pantry_items_default_title">Kamra</string>
+    <string name="pantry_items_heading">Alapanyagok</string>
+    <string name="pantry_items_count">%1$d tétel</string>
+    <string name="pantry_items_subtitle">%1$d tag · A készletet kézzel tartjátok naprakészen. Koppints egy tételre a szerkesztéshez, húzd balra a törléshez.</string>
+    <string name="pantry_items_empty">A kamra még üres</string>
+    <string name="pantry_items_load_failed">Nem sikerült betölteni a kamrát</string>
+    <string name="pantry_items_add_button">Hozzáadás</string>
+    <string name="pantry_items_edit">Szerkesztés</string>
+    <string name="pantry_items_delete">Törlés</string>
+    <string name="pantry_items_delete_title">Tétel törlése</string>
+    <string name="pantry_items_delete_message">Biztosan törlöd a(z) „%1$s” tételt a kamrából?</string>
+    <string name="pantry_items_delete_failed">Nem sikerült törölni a tételt.</string>
+    <string name="cancel">Mégse</string>
 </resources>

@@ -6,6 +6,8 @@ import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.snapshots
+import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
@@ -17,6 +19,25 @@ open class ItemRepository(
 ) {
     private val db by lazy { dbProvider() }
     private val collection get() = db.collection("items")
+
+    // Valós idejű lista egy kamra alapanyagairól, név szerint rendezve
+    fun observeItemsByPantry(pantryId: String): Flow<List<ItemDto>> =
+        collection.whereEqualTo("pantry", pantryId).snapshots().map { snapshot ->
+            snapshot.toObjects<ItemDto>().sortedBy { it.name.lowercase() }
+        }
+
+    // Törli az alapanyagot, és kiveszi az ID-ját a kamra items tömbjéből (egy batch-ben)
+    suspend fun deleteItem(item: ItemDto): Result<Unit> = runCatching {
+        val batch = db.batch()
+        batch.delete(collection.document(item.itemId))
+        if (item.pantry.isNotBlank()) {
+            batch.update(
+                db.collection("pantries").document(item.pantry),
+                "items", FieldValue.arrayRemove(item.itemId)
+            )
+        }
+        batch.commit().await()
+    }
 
     /**
      * Létrehoz egy új alapanyagot a Firestore-ban, és beállítja annak kamra azonosítóját (pantry),
