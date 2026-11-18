@@ -59,4 +59,5 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.auth) // Hitelesítéshez
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
 }
