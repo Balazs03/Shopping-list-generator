@@ -22,10 +22,10 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.shoppinglistgenerator.ui.theme.DarkGreenPrimary
-import com.example.shoppinglistgenerator.ui.theme.LightGreenSecondary
-import com.example.shoppinglistgenerator.ui.theme.ScreenBackgroundColor
-import com.example.shoppinglistgenerator.ui.theme.TextMutedColor
+import com.example.shoppinglistgenerator.screen.theme.DarkGreenPrimary
+import com.example.shoppinglistgenerator.screen.theme.LightGreenSecondary
+import com.example.shoppinglistgenerator.screen.theme.ScreenBackgroundColor
+import com.example.shoppinglistgenerator.screen.theme.TextMutedColor
 
 @Composable
 fun MainAppScreen(

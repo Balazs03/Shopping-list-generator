@@ -13,16 +13,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.example.shoppinglistgenerator.ui.additemtopantry.AddItemsPantryView
-import com.example.shoppinglistgenerator.ui.createshoppinglist.CreateShoppingListScreen
-import com.example.shoppinglistgenerator.ui.shoppinglistdetail.ShoppingListDetailScreen
-import com.example.shoppinglistgenerator.ui.createpantry.CreatePantryScreen
-import com.example.shoppinglistgenerator.ui.pantrydetail.PantryDetailScreen
-import com.example.shoppinglistgenerator.ui.pantryitems.PantryItemsScreen
-import com.example.shoppinglistgenerator.ui.pantryjoin.PantryJoinScreen
-import com.example.shoppinglistgenerator.ui.recipe.RecipeDetailScreen
-import com.example.shoppinglistgenerator.ui.recipe.RecipeListScreen
-import com.example.shoppinglistgenerator.ui.recipe.RecipeViewModel
+import com.example.shoppinglistgenerator.screen.additemtopantry.AddItemsPantryView
+import com.example.shoppinglistgenerator.screen.createshoppinglist.CreateShoppingListScreen
+import com.example.shoppinglistgenerator.screen.shoppinglistdetail.ShoppingListDetailScreen
+import com.example.shoppinglistgenerator.screen.createpantry.CreatePantryScreen
+import com.example.shoppinglistgenerator.screen.pantrydetail.PantryDetailScreen
+import com.example.shoppinglistgenerator.screen.pantryitems.PantryItemsScreen
+import com.example.shoppinglistgenerator.screen.pantryjoin.PantryJoinScreen
+import com.example.shoppinglistgenerator.screen.recipe.RecipeDetailScreen
+import com.example.shoppinglistgenerator.screen.recipe.RecipeListScreen
+import com.example.shoppinglistgenerator.screen.recipe.RecipeViewModel
 
 @Composable
 fun AppNavHost(
