@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.shoppinglistgenerator.navigation.MainAppScreen
-import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
+import com.example.shoppinglistgenerator.screen.theme.ShoppingListGeneratorTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
