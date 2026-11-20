@@ -39,8 +39,8 @@ import com.example.shoppinglistgenerator.R
 import com.example.shoppinglistgenerator.model.Ingredient
 import com.example.shoppinglistgenerator.model.Recipe
 import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
-import com.example.shoppinglistgenerator.ui.recipe.RecipeImage
-import com.example.shoppinglistgenerator.ui.recipe.recipeMetaText
+import com.example.shoppinglistgenerator.ui.recipe.components.RecipeImage
+import com.example.shoppinglistgenerator.ui.recipe.components.recipeMetaText
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)

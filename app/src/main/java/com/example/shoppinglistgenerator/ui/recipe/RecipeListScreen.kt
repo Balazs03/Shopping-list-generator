@@ -47,8 +47,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.shoppinglistgenerator.R
 import com.example.shoppinglistgenerator.model.Recipe
 import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
-import com.example.shoppinglistgenerator.ui.recipe.RecipeImage
-import com.example.shoppinglistgenerator.ui.recipe.recipeMetaText
+import com.example.shoppinglistgenerator.ui.recipe.components.RecipeImage
+import com.example.shoppinglistgenerator.ui.recipe.components.recipeMetaText
 import com.example.shoppinglistgenerator.ui.RecipeListUiState
 import com.example.shoppinglistgenerator.ui.RecipeViewModel
 
