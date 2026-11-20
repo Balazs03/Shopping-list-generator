@@ -1,4 +1,4 @@
-package com.example.shoppinglistgenerator.ui.recipe.components.recipe.components
+package com.example.shoppinglistgenerator.ui.recipe.components
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable

@@ -22,7 +22,7 @@ import com.example.shoppinglistgenerator.ui.pantryitems.PantryItemsScreen
 import com.example.shoppinglistgenerator.ui.pantryjoin.PantryJoinScreen
 import com.example.shoppinglistgenerator.ui.recipe.RecipeDetailScreen
 import com.example.shoppinglistgenerator.ui.recipe.RecipeListScreen
-import com.example.shoppinglistgenerator.ui.RecipeViewModel
+import com.example.shoppinglistgenerator.ui.recipe.RecipeViewModel
 
 @Composable
 fun AppNavHost(

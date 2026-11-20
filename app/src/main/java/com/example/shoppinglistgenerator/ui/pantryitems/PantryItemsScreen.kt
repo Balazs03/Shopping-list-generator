@@ -2,7 +2,6 @@ package com.example.shoppinglistgenerator.ui.pantryitems
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +17,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Add
@@ -37,7 +35,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,8 +53,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoppinglistgenerator.R
 import com.example.shoppinglistgenerator.model.dto.ItemDto
 import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
-import com.example.shoppinglistgenerator.ui.PantryItemsUiState
-import com.example.shoppinglistgenerator.ui.PantryItemsViewModel
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 

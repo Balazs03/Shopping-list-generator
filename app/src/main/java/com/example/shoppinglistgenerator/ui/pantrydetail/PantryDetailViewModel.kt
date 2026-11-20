@@ -1,7 +1,6 @@
 package com.example.shoppinglistgenerator.ui.pantrydetail
 
 import androidx.lifecycle.ViewModel
-import com.example.shoppinglistgenerator.ui.PantryUiItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

@@ -49,8 +49,6 @@ import com.example.shoppinglistgenerator.model.Recipe
 import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
 import com.example.shoppinglistgenerator.ui.recipe.components.RecipeImage
 import com.example.shoppinglistgenerator.ui.recipe.components.recipeMetaText
-import com.example.shoppinglistgenerator.ui.RecipeListUiState
-import com.example.shoppinglistgenerator.ui.RecipeViewModel
 
 @Composable
 fun RecipeListScreen(

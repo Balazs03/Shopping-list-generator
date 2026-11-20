@@ -1,7 +1,9 @@
-package com.example.shoppinglistgenerator.ui.additemtopantrytopantry
+package com.example.shoppinglistgenerator.ui.additemtopantry
 
 import com.example.shoppinglistgenerator.model.dto.ItemDto
 import com.example.shoppinglistgenerator.model.repository.ItemRepository
+import com.example.shoppinglistgenerator.ui.additemtopantrytopantry.AddItemsPantryViewModel
+import com.example.shoppinglistgenerator.ui.additemtopantrytopantry.PantryOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain

@@ -48,8 +48,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoppinglistgenerator.R
 import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
-import com.example.shoppinglistgenerator.ui.PantryJoinUiState
-import com.example.shoppinglistgenerator.ui.PantryJoinViewModel
 
 @Composable
 fun PantryJoinScreen(

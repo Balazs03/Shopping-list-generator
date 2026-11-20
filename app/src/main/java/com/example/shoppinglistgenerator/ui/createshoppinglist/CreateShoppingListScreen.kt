@@ -55,6 +55,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.shoppinglistgenerator.ui.shoppinglistdetail.ShoppingListColors
+import com.example.shoppinglistgenerator.ui.shoppinglistdetail.ShoppingPrimaryButton
+import com.example.shoppinglistgenerator.ui.shoppinglistdetail.ShoppingSectionTitle
+import com.example.shoppinglistgenerator.ui.shoppinglistdetail.formatAmount
 
 /**
  * Új bevásárlólista: kamra választása, receptek kiválasztása, majd a "Készlet összetétele"
