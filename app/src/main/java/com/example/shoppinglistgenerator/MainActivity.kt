@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.shoppinglistgenerator.navigation.AppNavHost
+import com.example.shoppinglistgenerator.navigation.MainAppScreen
 import com.example.shoppinglistgenerator.ui.theme.ShoppingListGeneratorTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ShoppingListGeneratorTheme {
-                AppNavHost()
+                MainAppScreen()
             }
         }
     }

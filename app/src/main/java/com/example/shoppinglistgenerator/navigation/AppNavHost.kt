@@ -13,16 +13,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.example.shoppinglistgenerator.ui.additem.AddItemsPantryView
-import com.example.shoppinglistgenerator.ui.screens.CreatePantryScreen
-import com.example.shoppinglistgenerator.ui.screens.CreateShoppingListScreen
-import com.example.shoppinglistgenerator.ui.screens.PantryDetailScreen
-import com.example.shoppinglistgenerator.ui.screens.PantryItemsScreen
-import com.example.shoppinglistgenerator.ui.screens.PantryJoinScreen
-import com.example.shoppinglistgenerator.ui.screens.ShoppingListDetailScreen
-import com.example.shoppinglistgenerator.view.RecipeDetailScreen
-import com.example.shoppinglistgenerator.view.RecipeListScreen
-import com.example.shoppinglistgenerator.viewmodel.RecipeViewModel
+import com.example.shoppinglistgenerator.ui.additemtopantry.AddItemsPantryView
+import com.example.shoppinglistgenerator.ui.createshoppinglist.CreateShoppingListScreen
+import com.example.shoppinglistgenerator.ui.shoppinglistdetail.ShoppingListDetailScreen
+import com.example.shoppinglistgenerator.ui.createpantry.CreatePantryScreen
+import com.example.shoppinglistgenerator.ui.pantrydetail.PantryDetailScreen
+import com.example.shoppinglistgenerator.ui.pantryitems.PantryItemsScreen
+import com.example.shoppinglistgenerator.ui.pantryjoin.PantryJoinScreen
+import com.example.shoppinglistgenerator.ui.recipe.RecipeDetailScreen
+import com.example.shoppinglistgenerator.ui.recipe.RecipeListScreen
+import com.example.shoppinglistgenerator.ui.RecipeViewModel
 
 @Composable
 fun AppNavHost(
@@ -43,17 +43,12 @@ fun AppNavHost(
             val route: Screen.PantryItems = backStackEntry.toRoute()
             PantryItemsScreen(
                 pantryId = route.pantryId,
+                onBackClick = { navController.popBackStack() },
                 onAddItemClick = {
                     navController.navigate(Screen.AddItemsPantry(pantryId = route.pantryId))
                 },
-                onPantryDetailClick = {
-                    navController.navigate(Screen.PantryDetail(pantryId = route.pantryId))
-                },
-                onNavigateToRecipes = {
-                    navController.navigate(Screen.RecipeList)
-                },
-                onNavigateToList = {
-                    navController.navigate(Screen.CreateShoppingList(pantryId = route.pantryId))
+                onEditItemClick = { itemId ->
+                    // TODO: Navigate to Edit Item Screen once available
                 }
             )
         }
@@ -62,26 +57,27 @@ fun AppNavHost(
         composable<Screen.CreatePantry> {
             CreatePantryScreen(
                 onBackClick = { navController.popBackStack() },
-                onPantryCreated = { newPantryId ->
-                    navController.navigate(Screen.PantryItems(pantryId = newPantryId)) {
-                        popUpTo<Screen.PantryItems> { inclusive = true }
-                    }
+                onCreateClick = { name, joinCode ->
+                    // TODO: trigger viewmodel to create, then:
+                    navController.popBackStack()
                 }
             )
         }
 
-        // 3. Kamra részletei (Owner: törlés, Non-owner: kilépés)
+        // 3. Kamra részletei
         composable<Screen.PantryDetail> { backStackEntry ->
             val route: Screen.PantryDetail = backStackEntry.toRoute()
             PantryDetailScreen(
-                pantryId = route.pantryId,
-                onBackClick = { navController.popBackStack() },
-                onPantryDeleted = {
+                // Note: The real view model should load pantryId = route.pantryId
+                onOpenPantry = { pantryId ->
+                    navController.navigate(Screen.PantryItems(pantryId = pantryId))
+                },
+                onDeletePantry = {
                     navController.navigate(Screen.PantryItems()) {
                         popUpTo<Screen.PantryItems> { inclusive = true }
                     }
                 },
-                onLeftPantry = {
+                onLeavePantry = {
                     navController.navigate(Screen.PantryItems()) {
                         popUpTo<Screen.PantryItems> { inclusive = true }
                     }
@@ -93,7 +89,7 @@ fun AppNavHost(
         composable<Screen.PantryJoin> {
             PantryJoinScreen(
                 onBackClick = { navController.popBackStack() },
-                onPantryJoined = { joinedPantryId ->
+                onJoined = { joinedPantryId ->
                     navController.navigate(Screen.PantryItems(pantryId = joinedPantryId)) {
                         popUpTo<Screen.PantryItems> { inclusive = true }
                     }
@@ -106,13 +102,15 @@ fun AppNavHost(
             val route: Screen.AddItemsPantry = backStackEntry.toRoute()
             AddItemsPantryView(
                 currentPantryId = route.pantryId,
-                onBackClick = { navController.popBackStack() },
-                onItemAdded = { navController.popBackStack() },
-                onNavigateToRecipes = {
-                    navController.navigate(Screen.RecipeList)
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.PantryItems(pantryId = route.pantryId))
+                    }
                 },
-                onNavigateToList = {
-                    navController.navigate(Screen.CreateShoppingList(pantryId = route.pantryId))
+                onItemAdded = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.PantryItems(pantryId = route.pantryId))
+                    }
                 }
             )
         }
