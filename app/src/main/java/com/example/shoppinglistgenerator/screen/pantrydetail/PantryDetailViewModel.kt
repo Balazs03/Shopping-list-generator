@@ -22,8 +22,6 @@ data class PantryDetailUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 ) {
-    // 1. hely: alapértelmezett saját kamra (mindenkinek van default)
-    // 2. hely: opcionális közös kamra (max. 1 db)
     val hasSharedPantry: Boolean get() = pantries.size >= 2
     val canAddOrJoinSharedPantry: Boolean get() = pantries.size < 2
 }

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 data class PantryUiItem(
     val id: String,
@@ -29,16 +32,46 @@ data class PantryUiItem(
 
 @Composable
 fun PantryDetailScreen(
-    pantries: List<PantryUiItem> = listOf(
-        PantryUiItem("1", "Saját kamra", 5, 1, isOwner = true, isDefaultPersonal = true),
-        PantryUiItem("2", "Otthoni kamra", 8, 3, isOwner = false, isDefaultPersonal = false)
-    ),
+    viewModel: PantryDetailViewModel = viewModel(),
     onOpenPantry: (String) -> Unit = {},
     onDeletePantry: (String) -> Unit = {},
     onLeavePantry: (String) -> Unit = {},
     onAddPantryClick: () -> Unit = {},
-    onJoinPantryClick: () -> Unit = {},
-    onNavigateTab: (Int) -> Unit = {}
+    onJoinPantryClick: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    PantryDetailContent(
+        pantries = uiState.pantries,
+        isLoading = uiState.isLoading,
+        errorMessage = uiState.errorMessage,
+        onOpenPantry = onOpenPantry,
+        onDeletePantry = { pantryId ->
+            viewModel.deleteSharedPantry(pantryId)
+            onDeletePantry(pantryId)
+        },
+        onLeavePantry = { pantryId ->
+            viewModel.leaveSharedPantry(pantryId)
+            onLeavePantry(pantryId)
+        },
+        onAddPantryClick = onAddPantryClick,
+        onJoinPantryClick = onJoinPantryClick
+    )
+}
+
+@Composable
+fun PantryDetailContent(
+    pantries: List<PantryUiItem> = listOf(
+        PantryUiItem("1", "Saját kamra", 5, 1, isOwner = true, isDefaultPersonal = true),
+        PantryUiItem("2", "Otthoni kamra", 8, 3, isOwner = false, isDefaultPersonal = false)
+    ),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onOpenPantry: (String) -> Unit = {},
+    onDeletePantry: (String) -> Unit = {},
+    onLeavePantry: (String) -> Unit = {},
+    onAddPantryClick: () -> Unit = {},
+    onJoinPantryClick: () -> Unit = {}
 ) {
     val backgroundColor = Color(0xFFF7F7F2)
     val cardContainerLight = Color(0xFFECEEE4)
@@ -90,41 +123,52 @@ fun PantryDetailScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            pantries.forEach { pantry ->
-                val subtitle = if (pantry.memberCount == 1) {
-                    "${pantry.ingredientCount} alapanyag · csak te"
-                } else {
-                    "${pantry.ingredientCount} alapanyag · ${pantry.memberCount} tag"
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryDarkGreen)
                 }
+            } else {
+                pantries.forEach { pantry ->
+                    val subtitle = if (pantry.memberCount == 1) {
+                        "${pantry.ingredientCount} alapanyag · csak te"
+                    } else {
+                        "${pantry.ingredientCount} alapanyag · ${pantry.memberCount} tag"
+                    }
 
-                val actionText = when {
-                    pantry.isDefaultPersonal -> null
-                    pantry.isOwner -> "Törlés"
-                    else -> "Kilépés"
+                    val actionText = when {
+                        pantry.isDefaultPersonal -> null
+                        pantry.isOwner -> "Törlés"
+                        else -> "Kilépés"
+                    }
+
+                    PantryCard(
+                        title = pantry.name,
+                        subtitle = subtitle,
+                        badgeText = if (pantry.isOwner) "Tulajdonos vagy" else "Tag vagy",
+                        actionText = actionText,
+                        actionColor = if (pantry.isOwner) deleteRedText else primaryDarkGreen,
+                        isPersonal = pantry.isDefaultPersonal,
+                        onOpen = { onOpenPantry(pantry.id) },
+                        onAction = {
+                            if (pantry.isOwner) onDeletePantry(pantry.id)
+                            else onLeavePantry(pantry.id)
+                        },
+                        badgeGreenBg = badgeGreenBg,
+                        badgeGreenText = badgeGreenText,
+                        cardContainerLight = cardContainerLight,
+                        textPrimary = textPrimary,
+                        textSecondary = textSecondary,
+                        borderLight = borderLight,
+                        backgroundColor = backgroundColor
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                PantryCard(
-                    title = pantry.name,
-                    subtitle = subtitle,
-                    badgeText = if (pantry.isOwner) "Tulajdonos vagy" else "Tag vagy",
-                    actionText = actionText,
-                    actionColor = if (pantry.isOwner) deleteRedText else primaryDarkGreen,
-                    isPersonal = pantry.isDefaultPersonal,
-                    onOpen = { onOpenPantry(pantry.id) },
-                    onAction = {
-                        if (pantry.isOwner) onDeletePantry(pantry.id)
-                        else onLeavePantry(pantry.id)
-                    },
-                    badgeGreenBg = badgeGreenBg,
-                    badgeGreenText = badgeGreenText,
-                    cardContainerLight = cardContainerLight,
-                    textPrimary = textPrimary,
-                    textSecondary = textSecondary,
-                    borderLight = borderLight,
-                    backgroundColor = backgroundColor
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
             if (isLimitReached) {
@@ -327,5 +371,5 @@ private fun PantryCard(
 @Preview(showBackground = true)
 @Composable
 fun PantryDetailScreenPreview() {
-    PantryDetailScreen()
+    PantryDetailContent()
 }

@@ -61,7 +61,7 @@ fun AppNavHost(
                         navController.navigate(Screen.PantryDetail())
                     }
                 },
-                onCreateClick = { name, joinCode ->
+                onCreated = {
                     if (!navController.popBackStack()) {
                         navController.navigate(Screen.PantryDetail())
                     }

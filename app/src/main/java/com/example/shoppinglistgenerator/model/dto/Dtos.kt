@@ -1,4 +1,5 @@
 package com.example.shoppinglistgenerator.model.dto
+
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.PropertyName
 
