@@ -36,7 +36,7 @@ fun MainAppScreen(
     val currentDestination = navBackStackEntry?.destination
 
     // Határozzuk meg, hogy melyik fül van éppen kiválasztva
-    val isPantrySelected = currentDestination?.hasRoute(Screen.PantryItems::class) == true
+    val isPantrySelected = currentDestination?.hasRoute(Screen.PantryDetail::class) == true || currentDestination?.hasRoute(Screen.PantryItems::class) == true
     val isRecipesSelected = currentDestination?.hasRoute(Screen.RecipeList::class) == true
     val isShoppingListSelected = currentDestination?.hasRoute(Screen.CreateShoppingList::class) == true
 
@@ -56,7 +56,7 @@ fun MainAppScreen(
                         selected = isPantrySelected,
                         onClick = {
                             if (!isPantrySelected) {
-                                navController.navigate(Screen.PantryItems()) {
+                                navController.navigate(Screen.PantryDetail()) {
                                     popUpTo(navController.graph.startDestinationId) {
                                         saveState = true
                                     }

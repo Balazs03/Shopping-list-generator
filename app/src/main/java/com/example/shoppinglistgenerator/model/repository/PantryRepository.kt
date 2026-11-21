@@ -8,6 +8,7 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObject
+import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -31,6 +32,116 @@ open class PantryRepository(
     // Valós idejű kamra adatok (név, tagok); null, ha a dokumentum nem létezik
     fun observePantry(pantryId: String): Flow<PantryDto?> =
         collection.document(pantryId).snapshots().map { it.toObject<PantryDto>() }
+
+    // Valós idejű kamra lista egy felhasználóhoz (a default personal kamra kerül előre)
+    fun observePantriesForUser(uid: String): Flow<List<PantryDto>> =
+        collection.whereArrayContains("users", uid).snapshots().map { snapshot ->
+            snapshot.toObjects<PantryDto>().sortedByDescending { it.isDefaultPersonal }
+        }
+
+    // Biztosítja, hogy a felhasználónak legyen legalább egy default personal kamrája ("Saját kamra")
+    suspend fun ensureDefaultPersonalPantry(uid: String): Result<PantryDto> = runCatching {
+        val userRef = db.collection("users").document(uid)
+        val userPantriesSnap = collection.whereArrayContains("users", uid).get().await()
+        val pantries = userPantriesSnap.toObjects(PantryDto::class.java)
+
+        val existingDefault = pantries.firstOrNull { it.isDefaultPersonal }
+        if (existingDefault != null) {
+            return@runCatching existingDefault
+        }
+
+        val newPantryRef = collection.document()
+        val defaultPantry = PantryDto(
+            pantryId = newPantryRef.id,
+            name = "Saját kamra",
+            creator = uid,
+            password = "",
+            isDefaultPersonal = true,
+            users = listOf(uid)
+        )
+
+        val batch = db.batch()
+        batch.set(newPantryRef, defaultPantry)
+        batch.set(
+            userRef,
+            mapOf("userId" to uid, "pantries" to FieldValue.arrayUnion(newPantryRef.id)),
+            SetOptions.merge()
+        )
+        batch.commit().await()
+        defaultPantry
+    }
+
+    // Új közös kamra létrehozása
+    suspend fun createPantry(name: String, joinCode: String, uid: String): Result<PantryDto> = runCatching {
+        val userRef = db.collection("users").document(uid)
+        val userDoc = userRef.get().await()
+        val userPantries = userDoc.get("pantries") as? List<*> ?: emptyList<Any>()
+
+        if (userPantries.size >= MAX_PANTRIES_PER_USER) {
+            throw PantryJoinException.LimitReached()
+        }
+
+        val newPantryRef = collection.document()
+        val newPantry = PantryDto(
+            pantryId = newPantryRef.id,
+            name = name,
+            creator = uid,
+            password = joinCode,
+            isDefaultPersonal = false,
+            users = listOf(uid)
+        )
+
+        val batch = db.batch()
+        batch.set(newPantryRef, newPantry)
+        batch.set(
+            userRef,
+            mapOf("pantries" to FieldValue.arrayUnion(newPantryRef.id)),
+            SetOptions.merge()
+        )
+        batch.commit().await()
+        newPantry
+    }
+
+    // Közös kamra törlése (csak tulajdonos törölheti, a default personal kamra nem törölhető)
+    suspend fun deleteSharedPantry(pantryId: String, uid: String): Result<Unit> = runCatching {
+        val pantryRef = collection.document(pantryId)
+        val pantryDoc = pantryRef.get().await()
+        val pantry = pantryDoc.toObject(PantryDto::class.java)
+            ?: throw PantryJoinException.NotFound()
+
+        if (pantry.isDefaultPersonal) {
+            throw IllegalStateException("A saját alapértelmezett kamra nem törölhető.")
+        }
+        if (pantry.creator != uid) {
+            throw IllegalStateException("Csak a tulajdonos törölheti a kamrát.")
+        }
+
+        val batch = db.batch()
+        batch.delete(pantryRef)
+        for (memberUid in pantry.users) {
+            val userRef = db.collection("users").document(memberUid)
+            batch.update(userRef, "pantries", FieldValue.arrayRemove(pantryId))
+        }
+        batch.commit().await()
+    }
+
+    // Kilépés közös kamrából (a default personal kamrából nem lehet kilépni)
+    suspend fun leaveSharedPantry(pantryId: String, uid: String): Result<Unit> = runCatching {
+        val pantryRef = collection.document(pantryId)
+        val pantryDoc = pantryRef.get().await()
+        val pantry = pantryDoc.toObject(PantryDto::class.java)
+            ?: throw PantryJoinException.NotFound()
+
+        if (pantry.isDefaultPersonal) {
+            throw IllegalStateException("A saját alapértelmezett kamrából nem lehet kilépni.")
+        }
+
+        val userRef = db.collection("users").document(uid)
+        val batch = db.batch()
+        batch.update(pantryRef, "users", FieldValue.arrayRemove(uid))
+        batch.update(userRef, "pantries", FieldValue.arrayRemove(pantryId))
+        batch.commit().await()
+    }
 
     // Csatlakozás egy meglévő kamrához a jelkódja (password mező) alapján
     suspend fun joinPantry(code: String, uid: String): Result<PantryDto> = runCatching {

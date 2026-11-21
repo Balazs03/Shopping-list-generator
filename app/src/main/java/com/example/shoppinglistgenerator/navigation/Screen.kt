@@ -17,7 +17,7 @@ sealed interface Screen {
      * Kamra részletei képernyő (Tulajdonságok, funkciók, törlés - owner, kilépés - non-owner).
      */
     @Serializable
-    data class PantryDetail(val pantryId: String) : Screen
+    data class PantryDetail(val pantryId: String = "") : Screen
 
     /**
      * Csatlakozás meglévő kamrához (jelkód megadásával).

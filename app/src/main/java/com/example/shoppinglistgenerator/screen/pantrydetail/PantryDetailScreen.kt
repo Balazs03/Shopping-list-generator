@@ -53,37 +53,7 @@ fun PantryDetailScreen(
     val isLimitReached = pantries.size >= 2
 
     Scaffold(
-        containerColor = backgroundColor,
-        bottomBar = {
-            NavigationBar(
-                containerColor = cardContainerLight,
-                tonalElevation = 0.dp
-            ) {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { onNavigateTab(0) },
-                    icon = { Icon(Icons.Outlined.Inventory2, contentDescription = "Kamra") },
-                    label = { Text("Kamra") },
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = badgeGreenBg,
-                        selectedIconColor = textPrimary,
-                        selectedTextColor = textPrimary
-                    )
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { onNavigateTab(1) },
-                    icon = { Icon(Icons.Outlined.MenuBook, contentDescription = "Receptek") },
-                    label = { Text("Receptek") }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { onNavigateTab(2) },
-                    icon = { Icon(Icons.Outlined.ShoppingBasket, contentDescription = "Lista") },
-                    label = { Text("Lista") }
-                )
-            }
-        }
+        containerColor = backgroundColor
     ) { padding ->
         Column(
             modifier = Modifier

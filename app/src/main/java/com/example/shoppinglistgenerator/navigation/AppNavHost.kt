@@ -28,7 +28,7 @@ import com.example.shoppinglistgenerator.screen.recipe.RecipeViewModel
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: Screen = Screen.PantryItems()
+    startDestination: Screen = Screen.PantryDetail()
 ) {
     // Activity-scoped, shared by the recipe list and the recipe detail screen
     val recipeViewModel: RecipeViewModel = viewModel()
@@ -56,10 +56,15 @@ fun AppNavHost(
         // 2. Kamra létrehozása
         composable<Screen.CreatePantry> {
             CreatePantryScreen(
-                onBackClick = { navController.popBackStack() },
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.PantryDetail())
+                    }
+                },
                 onCreateClick = { name, joinCode ->
-                    // TODO: trigger viewmodel to create, then:
-                    navController.popBackStack()
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.PantryDetail())
+                    }
                 }
             )
         }
@@ -68,7 +73,6 @@ fun AppNavHost(
         composable<Screen.PantryDetail> { backStackEntry ->
             val route: Screen.PantryDetail = backStackEntry.toRoute()
             PantryDetailScreen(
-                // Note: The real view model should load pantryId = route.pantryId
                 onOpenPantry = { pantryId ->
                     navController.navigate(Screen.PantryItems(pantryId = pantryId))
                 },
@@ -81,6 +85,12 @@ fun AppNavHost(
                     navController.navigate(Screen.PantryItems()) {
                         popUpTo<Screen.PantryItems> { inclusive = true }
                     }
+                },
+                onAddPantryClick = {
+                    navController.navigate(Screen.CreatePantry)
+                },
+                onJoinPantryClick = {
+                    navController.navigate(Screen.PantryJoin)
                 }
             )
         }
