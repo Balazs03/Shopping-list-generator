@@ -97,16 +97,8 @@ open class PantryRepository(
         defaultPantry
     }
 
-    // Új közös kamra létrehozása
+    // Új közös kamra létrehozása (Offline-first: azonnal menti a helyi cache-be)
     suspend fun createPantry(name: String, joinCode: String, uid: String): Result<PantryDto> = runCatching {
-        val userRef = db.collection("users").document(uid)
-        val userDoc = runCatching { userRef.get().await() }.getOrNull()
-        val userPantries = userDoc?.get("pantries") as? List<*> ?: emptyList<Any>()
-
-        if (userPantries.size >= MAX_PANTRIES_PER_USER) {
-            throw PantryJoinException.LimitReached()
-        }
-
         val newPantryRef = collection.document()
         val newPantry = PantryDto(
             pantryId = newPantryRef.id,
@@ -119,12 +111,14 @@ open class PantryRepository(
 
         val batch = db.batch()
         batch.set(newPantryRef, newPantry)
+        val userRef = db.collection("users").document(uid)
         batch.set(
             userRef,
             mapOf("pantries" to FieldValue.arrayUnion(newPantryRef.id)),
             SetOptions.merge()
         )
-        batch.commit().await()
+        // Nem várjuk meg a hálózati .await()-et, hogy azonnal visszatérjen (offline-first)
+        batch.commit()
         newPantry
     }
 
@@ -146,7 +140,11 @@ open class PantryRepository(
         batch.delete(pantryRef)
         for (memberUid in pantry.users) {
             val userRef = db.collection("users").document(memberUid)
-            batch.update(userRef, "pantries", FieldValue.arrayRemove(pantryId))
+            batch.set(
+                userRef,
+                mapOf("pantries" to FieldValue.arrayRemove(pantryId)),
+                SetOptions.merge()
+            )
         }
         batch.commit().await()
     }
@@ -165,7 +163,11 @@ open class PantryRepository(
         val userRef = db.collection("users").document(uid)
         val batch = db.batch()
         batch.update(pantryRef, "users", FieldValue.arrayRemove(uid))
-        batch.update(userRef, "pantries", FieldValue.arrayRemove(pantryId))
+        batch.set(
+            userRef,
+            mapOf("pantries" to FieldValue.arrayRemove(pantryId)),
+            SetOptions.merge()
+        )
         batch.commit().await()
     }
 
