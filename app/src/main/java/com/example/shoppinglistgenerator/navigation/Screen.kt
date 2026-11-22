@@ -29,7 +29,7 @@ sealed interface Screen {
      * Kamra elemeinek kilistázása és kezelése.
      */
     @Serializable
-    data class PantryItems(val pantryId: String = "otthoni") : Screen
+    data class PantryItems(val pantryId: String) : Screen
 
     /**
      * Elem hozzáadása kamrához (Név, mennyiség, mértékegység, Adott kamrához/saját, Tulajdonos).

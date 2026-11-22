@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.example.shoppinglistgenerator.navigation.AuthGate
 import com.example.shoppinglistgenerator.navigation.MainAppScreen
 import com.example.shoppinglistgenerator.screen.theme.ShoppingListGeneratorTheme
 
@@ -13,7 +14,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ShoppingListGeneratorTheme {
-                MainAppScreen()
+                // Előbb bejelentkezés (Firestore szabályok), utána az app
+                AuthGate {
+                    MainAppScreen()
+                }
             }
         }
     }

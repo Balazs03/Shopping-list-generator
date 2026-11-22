@@ -54,4 +54,22 @@
     <string name="pantry_items_delete_message">Biztosan törlöd a(z) „%1$s” tételt a kamrából?</string>
     <string name="pantry_items_delete_failed">Nem sikerült törölni a tételt.</string>
     <string name="cancel">Mégse</string>
+    <string name="close">Bezárás</string>
+    <string name="retry">Újrapróbálom</string>
+    <string name="auth_failed">Nem sikerült csatlakozni a szerverhez. Ellenőrizd az internetkapcsolatot, és próbáld újra.</string>
+
+    <!-- Recipe cook (Elkészítem) -->
+    <string name="cook_choose_pantry_title">Melyik kamrából főzöl?</string>
+    <string name="cook_choose_pantry_message">A hozzávalókat a kiválasztott kamra készletéből vonjuk le.</string>
+    <string name="cook_pantry_members">%1$d tag</string>
+    <string name="cook_confirm_title">Recept elkészítése</string>
+    <string name="cook_confirm_message">A következő alapanyagokat vonjuk le innen: %1$s.</string>
+    <string name="cook_nothing_to_deduct">A(z) %1$s kamrában nincs meg egyik hozzávaló sem, így nincs mit levonni.</string>
+    <string name="cook_deducted_title">Levonásra kerül</string>
+    <string name="cook_amount_change">−%1$s (marad: %2$s)</string>
+    <string name="cook_missing_title">Hiányzik a kamrából</string>
+    <string name="cook_confirm_button">Elkészítem</string>
+    <string name="cook_success">A hozzávalókat levontuk: %1$s</string>
+    <string name="cook_error_no_pantry">Még nem tartozol egy kamrához sem.</string>
+    <string name="cook_error_generic">Nem sikerült elkészíteni a receptet, próbáld újra.</string>
 </resources>
