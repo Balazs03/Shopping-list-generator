@@ -40,7 +40,7 @@ open class PantryRepository(
         return combine(
             userRef.snapshots(),
             collection.whereArrayContains("users", uid).snapshots()
-        ) { userSnap, pantriesSnap ->
+        ) { _, pantriesSnap ->
             val pantriesFromQuery = pantriesSnap.toObjects(PantryDto::class.java)
             val pantriesMap = pantriesFromQuery.associateBy { it.pantryId }.toMutableMap()
 
@@ -100,8 +100,8 @@ open class PantryRepository(
     // Új közös kamra létrehozása
     suspend fun createPantry(name: String, joinCode: String, uid: String): Result<PantryDto> = runCatching {
         val userRef = db.collection("users").document(uid)
-        val userDoc = userRef.get().await()
-        val userPantries = userDoc.get("pantries") as? List<*> ?: emptyList<Any>()
+        val userDoc = runCatching { userRef.get().await() }.getOrNull()
+        val userPantries = userDoc?.get("pantries") as? List<*> ?: emptyList<Any>()
 
         if (userPantries.size >= MAX_PANTRIES_PER_USER) {
             throw PantryJoinException.LimitReached()
@@ -171,8 +171,8 @@ open class PantryRepository(
 
     // Csatlakozás egy meglévő kamrához a jelkódja (password mező) alapján
     suspend fun joinPantry(code: String, uid: String): Result<PantryDto> = runCatching {
-        val pantryDoc = collection.whereEqualTo("password", code).limit(1).get().await()
-            .documents.firstOrNull() ?: throw PantryJoinException.NotFound()
+        val pantryQuery = collection.whereEqualTo("password", code).limit(1).get().await()
+        val pantryDoc = pantryQuery.documents.firstOrNull() ?: throw PantryJoinException.NotFound()
         val pantryRef = pantryDoc.reference
         val userRef = db.collection("users").document(uid)
 

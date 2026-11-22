@@ -1,5 +1,6 @@
 package com.example.shoppinglistgenerator.screen.createpantry
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shoppinglistgenerator.model.repository.AuthRepository
@@ -66,10 +67,18 @@ class CreatePantryViewModel(
             result.onSuccess {
                 _uiState.update { it.copy(isLoading = false, isCreated = true) }
             }.onFailure { error ->
+                Log.e("CreatePantryVM", "Failed to create pantry", error)
+                val displayMessage = when {
+                    error.message?.contains("PERMISSION_DENIED", ignoreCase = true) == true ->
+                        "Nincs jogosultságod a művelethez. Ellenőrizd a Firestore szabályokat."
+                    error.message?.contains("UNAUTHENTICATED", ignoreCase = true) == true ->
+                        "Nem vagy bejelentkezve (Authentication hiba)."
+                    else -> error.localizedMessage ?: error.message ?: "Hiba történt a kamra létrehozásakor."
+                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Hiba történt a kamra létrehozásakor."
+                        errorMessage = displayMessage
                     )
                 }
             }

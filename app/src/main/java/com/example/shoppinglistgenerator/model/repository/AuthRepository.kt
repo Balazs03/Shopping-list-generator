@@ -3,6 +3,9 @@ package com.example.shoppinglistgenerator.model.repository
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class AuthRepository(
@@ -10,6 +13,8 @@ class AuthRepository(
     private val userRepository: UserRepository = UserRepository(),
     private val pantryRepository: PantryRepository = PantryRepository()
 ) {
+    private var isDefaultPantryEnsured = false
+
     // Automatikus, csendes bejelentkezés / regisztráció
     suspend fun ensureAuthenticated(): String {
         val currentUser = auth.currentUser
@@ -24,11 +29,18 @@ class AuthRepository(
             
             // Kezdő User rekord létrehozása a Firestore 'users' gyűjteményben
             userRepository.createUserProfile(newUid)
+            runCatching { pantryRepository.ensureDefaultPersonalPantry(newUid) }
+            isDefaultPantryEnsured = true
             newUid
         }
 
-        // Biztosítjuk, hogy a felhasználónak automatikusan meglegyen a default personal kamrája ("Saját kamra")
-        runCatching { pantryRepository.ensureDefaultPersonalPantry(uid) }
+        if (!isDefaultPantryEnsured) {
+            isDefaultPantryEnsured = true
+            // Háttérben ellenőrizzük, hogy megvan-e a Saját kamra, így nem blokkoljuk a UI-t
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching { pantryRepository.ensureDefaultPersonalPantry(uid) }
+            }
+        }
 
         return uid
     }

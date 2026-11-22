@@ -76,15 +76,11 @@ fun AppNavHost(
                 onOpenPantry = { pantryId ->
                     navController.navigate(Screen.PantryItems(pantryId = pantryId))
                 },
-                onDeletePantry = {
-                    navController.navigate(Screen.PantryItems()) {
-                        popUpTo<Screen.PantryItems> { inclusive = true }
-                    }
+                onDeletePantry = { pantryId ->
+                    // Firestore snapshot listener automatikusan frissíti a listát
                 },
-                onLeavePantry = {
-                    navController.navigate(Screen.PantryItems()) {
-                        popUpTo<Screen.PantryItems> { inclusive = true }
-                    }
+                onLeavePantry = { pantryId ->
+                    // Firestore snapshot listener automatikusan frissíti a listát
                 },
                 onAddPantryClick = {
                     navController.navigate(Screen.CreatePantry)
