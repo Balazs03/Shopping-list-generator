@@ -37,10 +37,12 @@ fun MainAppScreen(
 
     // Határozzuk meg, hogy melyik fül van éppen kiválasztva
     val isPantrySelected = currentDestination?.hasRoute(Screen.PantryDetail::class) == true || currentDestination?.hasRoute(Screen.PantryItems::class) == true
-    val isRecipesSelected = currentDestination?.hasRoute(Screen.RecipeList::class) == true
+    // A recept részletei a Receptek fülhöz tartoznak, ezért ott is az a fül aktív
+    val isRecipeDetail = currentDestination?.hasRoute(Screen.RecipeDetail::class) == true
+    val isRecipesSelected = currentDestination?.hasRoute(Screen.RecipeList::class) == true || isRecipeDetail
     val isShoppingListSelected = currentDestination?.hasRoute(Screen.CreateShoppingList::class) == true
 
-    // Csak a top-level képernyőkön mutassuk a bottom navigation-t
+    // A top-level képernyőkön és a recept részletein mutassuk a bottom navigation-t
     val showBottomBar = isPantrySelected || isRecipesSelected || isShoppingListSelected
 
     Scaffold(
@@ -83,7 +85,14 @@ fun MainAppScreen(
                     NavigationBarItem(
                         selected = isRecipesSelected,
                         onClick = {
-                            if (!isRecipesSelected) {
+                            if (isRecipeDetail) {
+                                // Recept részleteiről a fülre koppintva vissza a recept listára
+                                if (!navController.popBackStack<Screen.RecipeList>(inclusive = false)) {
+                                    navController.navigate(Screen.RecipeList) {
+                                        launchSingleTop = true
+                                    }
+                                }
+                            } else if (!isRecipesSelected) {
                                 navController.navigate(Screen.RecipeList) {
                                     popUpTo(navController.graph.startDestinationId) {
                                         saveState = true
