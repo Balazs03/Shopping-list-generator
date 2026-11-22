@@ -10,6 +10,7 @@ import com.google.firebase.firestore.snapshots
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
@@ -34,10 +35,25 @@ open class PantryRepository(
         collection.document(pantryId).snapshots().map { it.toObject<PantryDto>() }
 
     // Valós idejű kamra lista egy felhasználóhoz (a default personal kamra kerül előre)
-    fun observePantriesForUser(uid: String): Flow<List<PantryDto>> =
-        collection.whereArrayContains("users", uid).snapshots().map { snapshot ->
-            snapshot.toObjects<PantryDto>().sortedByDescending { it.isDefaultPersonal }
+    fun observePantriesForUser(uid: String): Flow<List<PantryDto>> {
+        val userRef = db.collection("users").document(uid)
+        return combine(
+            userRef.snapshots(),
+            collection.whereArrayContains("users", uid).snapshots()
+        ) { userSnap, pantriesSnap ->
+            val pantriesFromQuery = pantriesSnap.toObjects(PantryDto::class.java)
+            val pantriesMap = pantriesFromQuery.associateBy { it.pantryId }.toMutableMap()
+
+            pantriesMap.values.map { pantry ->
+                val isDefault = pantry.isDefaultPersonal || pantry.name == "Saját kamra" ||
+                        (pantry.creator == uid && pantry.password.isBlank() && pantry.users.size <= 1)
+                pantry.copy(isDefaultPersonal = isDefault)
+            }.sortedWith(
+                compareByDescending<PantryDto> { it.isDefaultPersonal }
+                    .thenBy { it.name }
+            )
         }
+    }
 
     // Biztosítja, hogy a felhasználónak legyen legalább egy default personal kamrája ("Saját kamra")
     suspend fun ensureDefaultPersonalPantry(uid: String): Result<PantryDto> = runCatching {
@@ -45,9 +61,19 @@ open class PantryRepository(
         val userPantriesSnap = collection.whereArrayContains("users", uid).get().await()
         val pantries = userPantriesSnap.toObjects(PantryDto::class.java)
 
-        val existingDefault = pantries.firstOrNull { it.isDefaultPersonal }
+        val existingDefault = pantries.firstOrNull {
+            it.isDefaultPersonal || it.name == "Saját kamra" || (it.creator == uid && it.password.isBlank())
+        }
+
         if (existingDefault != null) {
-            return@runCatching existingDefault
+            if (!existingDefault.isDefaultPersonal) {
+                val pantryRef = collection.document(existingDefault.pantryId)
+                pantryRef.set(
+                    mapOf("defaultPersonal" to true, "isDefaultPersonal" to true),
+                    SetOptions.merge()
+                )
+            }
+            return@runCatching existingDefault.copy(isDefaultPersonal = true)
         }
 
         val newPantryRef = collection.document()
