@@ -61,25 +61,24 @@ import com.example.shoppinglistgenerator.screen.shoppinglistdetail.ShoppingSecti
 import com.example.shoppinglistgenerator.screen.shoppinglistdetail.formatAmount
 
 /**
- * Új bevásárlólista: kamra választása, receptek kiválasztása, majd a "Készlet összetétele"
- * táblázat alapján csak a hiányzó mennyiségek kerülnek a listára.
+ * Receptek hozzáadása a bevásárlólistához: kamra választása, receptek kiválasztása, majd a
+ * "Készlet összetétele" táblázat alapján csak a hiányzó mennyiségek kerülnek a
+ * felhasználó (egyetlen) listájára.
  *
- * A pantryId-t a ViewModel a navigációs argumentumból (SavedStateHandle) is megkapja,
- * a paraméter a meglévő navigációs hívás kompatibilitása miatt maradt.
+ * A pantryId-t a ViewModel a navigációs argumentumból (SavedStateHandle) kapja.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateShoppingListScreen(
-    pantryId: String? = null,
     onBackClick: () -> Unit = {},
-    onListCreated: (String) -> Unit = {},
+    onItemsAdded: () -> Unit = {},
     viewModel: CreateShoppingListViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.createdListId) {
-        state.createdListId?.let(onListCreated)
+    LaunchedEffect(state.itemsAdded) {
+        if (state.itemsAdded) onItemsAdded()
     }
 
     LaunchedEffect(state.errorMessage) {
@@ -189,8 +188,13 @@ fun CreateShoppingListScreen(
                                 if (selectedPantry != null) {
                                     val members = maxOf(selectedPantry.memberCount, 1)
                                     Text(
-                                        text = "A lista a(z) ${selectedPantry.name} mind a " +
-                                                "$members tagja számára látható.",
+                                        text = if (state.targetPantryId != null) {
+                                            "A lista a(z) ${selectedPantry.name} mind a " +
+                                                    "$members tagja számára látható."
+                                        } else {
+                                            "A hiányzó tételek a saját listádra kerülnek, " +
+                                                    "a(z) ${selectedPantry.name} készletéhez mérve."
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = ShoppingListColors.OnSurfaceVariant
                                     )

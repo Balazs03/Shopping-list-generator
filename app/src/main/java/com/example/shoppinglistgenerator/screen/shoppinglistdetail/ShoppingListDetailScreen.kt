@@ -23,11 +23,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
@@ -40,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -68,20 +70,21 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.shoppinglistgenerator.model.repository.ShoppingListOption
 
 /**
- * Bevásárlólista részletei: előrehaladás, Összes / Hiányzó szűrő, kipipálható tételek,
- * új tétel hozzáadása, meglévő tétel szerkesztése / törlése.
+ * Egyetlen bevásárlólista, ami a saját és a kamra tételeit együtt mutatja, mindegyiken
+ * egy címkével (Saját / kamra neve). Felül szűrő: Mind / Saját / kamra (csak kamratagoknak).
+ * Előrehaladás, Összes / Hiányzó szűrő, új tétel hozzáadása (kézzel vagy receptekből),
+ * meglévő tétel szerkesztése / törlése.
  *
- * A listId-t a ViewModel a navigációs argumentumból (SavedStateHandle) kapja,
- * a paraméterek a meglévő navigációs hívás kompatibilitása miatt maradtak.
+ * [onAddFromRecipesClick] a cél lista kamra ID-ját kapja (null = saját lista).
  */
-@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListDetailScreen(
-    listId: String,
     onBackClick: () -> Unit = {},
+    onAddFromRecipesClick: (targetPantryId: String?) -> Unit = {},
     viewModel: ShoppingListDetailViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -89,6 +92,7 @@ fun ShoppingListDetailScreen(
 
     var showAddDialog by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<ShoppingListItemUi?>(null) }
+    var showRecipeTargetDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
@@ -109,12 +113,13 @@ fun ShoppingListDetailScreen(
                     )
                 },
                 navigationIcon = {
-                    Icon(
-                        Icons.Outlined.ShoppingCart,
-                        contentDescription = null,
-                        tint = ShoppingListColors.OnSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Vissza",
+                            tint = ShoppingListColors.Primary
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = ShoppingListColors.Background
@@ -133,25 +138,40 @@ fun ShoppingListDetailScreen(
                     modifier = Modifier.align(Alignment.Center),
                     color = ShoppingListColors.Primary
                 )
-            } else if (state.listNotFound) {
-                Text(
-                    text = "Ez a lista nem található.",
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(16.dp),
-                    color = ShoppingListColors.OnSurfaceVariant
-                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // --- Lista szűrő: Mind / Saját / Kamra (csak kamratagoknak) ---
+                    if (state.hasMultipleLists) {
+                        item {
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                ChoiceChip(
+                                    label = "Mind",
+                                    selected = state.selectedListId == null,
+                                    onClick = { viewModel.onListFilterChanged(null) }
+                                )
+                                state.lists.forEach { list ->
+                                    ChoiceChip(
+                                        label = list.name,
+                                        selected = state.selectedListId == list.listId,
+                                        onClick = { viewModel.onListFilterChanged(list.listId) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // --- Előrehaladás ---
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                text = "${state.purchasedCount}/${state.items.size} kész",
+                                text = "${state.purchasedCount}/${state.filteredItems.size} kész",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = ShoppingListColors.OnSurfaceVariant,
                                 modifier = Modifier.align(Alignment.End)
@@ -170,9 +190,10 @@ fun ShoppingListDetailScreen(
 
                     // --- Szűrő: Összes / Hiányzó ---
                     item {
-                        FilterToggle(
-                            showOnlyRemaining = state.showOnlyRemaining,
-                            onChange = viewModel::onFilterChanged
+                        SegmentedToggle(
+                            labels = listOf("Összes", "Hiányzó"),
+                            selectedIndex = if (state.showOnlyRemaining) 1 else 0,
+                            onSelect = { index -> viewModel.onFilterChanged(index == 1) }
                         )
                     }
 
@@ -182,7 +203,7 @@ fun ShoppingListDetailScreen(
                     item {
                         if (state.visibleItems.isEmpty()) {
                             Text(
-                                text = if (state.items.isEmpty()) {
+                                text = if (state.filteredItems.isEmpty()) {
                                     "A listán még nincs tétel."
                                 } else {
                                     "Minden tételt beszereztél. 🎉"
@@ -228,6 +249,41 @@ fun ShoppingListDetailScreen(
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
+                    item {
+                        OutlinedButton(
+                            onClick = {
+                                val target = state.selectedList
+                                    ?: state.lists.singleOrNull()
+                                if (target != null) {
+                                    onAddFromRecipesClick(target.pantryId)
+                                } else {
+                                    // "Mind" szűrőnél meg kell kérdezni, melyik listára kerüljön
+                                    showRecipeTargetDialog = true
+                                }
+                            },
+                            enabled = state.lists.isNotEmpty(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(28.dp),
+                            border = BorderStroke(1.dp, ShoppingListColors.Primary),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = ShoppingListColors.Primary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Outlined.Book,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Receptekből",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -237,11 +293,41 @@ fun ShoppingListDetailScreen(
         ItemEditorDialog(
             title = "Új tétel hozzáadása",
             confirmLabel = "Hozzáadás",
-            onConfirm = { name, quantity, unit ->
-                viewModel.addItem(name, quantity, unit)
+            listChoices = state.lists,
+            // Alapból a szűrőben kiválasztott lista, "Mind" esetén a saját lista
+            initialListId = state.selectedListId ?: state.lists.firstOrNull()?.listId,
+            onConfirm = { name, quantity, unit, listId ->
+                listId?.let { viewModel.addItem(name, quantity, unit, it) }
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
+        )
+    }
+
+    if (showRecipeTargetDialog) {
+        AlertDialog(
+            onDismissRequest = { showRecipeTargetDialog = false },
+            containerColor = ShoppingListColors.Surface,
+            title = { Text("Melyik listára kerüljenek?", fontWeight = FontWeight.SemiBold) },
+            text = {
+                Column {
+                    state.lists.forEach { list ->
+                        TextButton(
+                            onClick = {
+                                showRecipeTargetDialog = false
+                                onAddFromRecipesClick(list.pantryId)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(list.name, color = ShoppingListColors.Primary)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showRecipeTargetDialog = false }) { Text("Mégse") }
+            }
         )
     }
 
@@ -252,23 +338,25 @@ fun ShoppingListDetailScreen(
             initialName = item.name,
             initialQuantity = item.quantity,
             initialUnit = item.unit,
-            onConfirm = { name, quantity, unit ->
+            onConfirm = { name, quantity, unit, _ ->
                 viewModel.updateItem(item.id, name, quantity, unit)
                 editingItem = null
             },
             onDismiss = { editingItem = null },
             onDelete = {
-                viewModel.deleteItem(item.id)
+                viewModel.deleteItem(item)
                 editingItem = null
             }
         )
     }
 }
 
+/** Lekerekített, egymás melletti választógombok (Összes / Hiányzó, Saját / Kamra). */
 @Composable
-private fun FilterToggle(
-    showOnlyRemaining: Boolean,
-    onChange: (Boolean) -> Unit
+private fun SegmentedToggle(
+    labels: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit
 ) {
     val shape = RoundedCornerShape(22.dp)
     Row(
@@ -279,18 +367,14 @@ private fun FilterToggle(
             .background(ShoppingListColors.Surface)
             .border(1.dp, ShoppingListColors.Outline, shape)
     ) {
-        ToggleOption(
-            label = "Összes",
-            selected = !showOnlyRemaining,
-            modifier = Modifier.weight(1f),
-            onClick = { onChange(false) }
-        )
-        ToggleOption(
-            label = "Hiányzó",
-            selected = showOnlyRemaining,
-            modifier = Modifier.weight(1f),
-            onClick = { onChange(true) }
-        )
+        labels.forEachIndexed { index, label ->
+            ToggleOption(
+                label = label,
+                selected = index == selectedIndex,
+                modifier = Modifier.weight(1f),
+                onClick = { onSelect(index) }
+            )
+        }
     }
 }
 
@@ -349,19 +433,24 @@ private fun ShoppingItemRow(
                 checkmarkColor = Color.White
             )
         )
-        Text(
-            text = item.name,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (item.purchased) {
-                ShoppingListColors.OnSurfaceVariant
-            } else {
-                ShoppingListColors.OnSurface
-            },
-            textDecoration = if (item.purchased) TextDecoration.LineThrough else null,
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 4.dp)
-        )
+                .padding(start = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (item.purchased) {
+                    ShoppingListColors.OnSurfaceVariant
+                } else {
+                    ShoppingListColors.OnSurface
+                },
+                textDecoration = if (item.purchased) TextDecoration.LineThrough else null
+            )
+            ListTag(text = item.tag)
+        }
         Text(
             text = formatAmount(item.quantity),
             style = MaterialTheme.typography.bodyLarge,
@@ -387,7 +476,10 @@ private fun ShoppingItemRow(
 
 private val UNIT_OPTIONS = listOf("g", "kg", "ml", "l", "db")
 
-/** Közös párbeszédablak az új tétel felvételéhez és a meglévő szerkesztéséhez / törléséhez. */
+/**
+ * Közös párbeszédablak az új tétel felvételéhez és a meglévő szerkesztéséhez / törléséhez.
+ * Ha [listChoices] több elemű, a felhasználó választhat, melyik listára (Saját / kamra) kerüljön.
+ */
 @Composable
 private fun ItemEditorDialog(
     title: String,
@@ -395,7 +487,9 @@ private fun ItemEditorDialog(
     initialName: String = "",
     initialQuantity: Double? = null,
     initialUnit: String = "db",
-    onConfirm: (name: String, quantity: Double, unit: String) -> Unit,
+    listChoices: List<ShoppingListOption> = emptyList(),
+    initialListId: String? = null,
+    onConfirm: (name: String, quantity: Double, unit: String, listId: String?) -> Unit,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
@@ -404,6 +498,7 @@ private fun ItemEditorDialog(
         mutableStateOf(initialQuantity?.let { formatAmount(it) } ?: "")
     }
     var unit by remember { mutableStateOf(initialUnit.ifBlank { "db" }) }
+    var listId by remember { mutableStateOf(initialListId) }
 
     val quantity = quantityText.replace(',', '.').toDoubleOrNull()
     val valid = name.isNotBlank() && quantity != null && quantity > 0.0
@@ -435,11 +530,30 @@ private fun ItemEditorDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     unitOptions.forEach { option ->
-                        UnitChip(
+                        ChoiceChip(
                             label = option,
                             selected = option == unit,
                             onClick = { unit = option }
                         )
+                    }
+                }
+                if (listChoices.size > 1) {
+                    Text(
+                        text = "Melyik listára?",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = ShoppingListColors.OnSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listChoices.forEach { option ->
+                            ChoiceChip(
+                                label = option.name,
+                                selected = option.listId == listId,
+                                onClick = { listId = option.listId }
+                            )
+                        }
                     }
                 }
                 if (onDelete != null) {
@@ -459,7 +573,7 @@ private fun ItemEditorDialog(
         confirmButton = {
             TextButton(
                 enabled = valid,
-                onClick = { if (quantity != null) onConfirm(name.trim(), quantity, unit) }
+                onClick = { if (quantity != null) onConfirm(name.trim(), quantity, unit, listId) }
             ) {
                 Text(confirmLabel, fontWeight = FontWeight.SemiBold)
             }
@@ -470,8 +584,26 @@ private fun ItemEditorDialog(
     )
 }
 
+/** Címke a tétel alatt: melyik listához (Saját / kamra) tartozik. */
 @Composable
-private fun UnitChip(
+private fun ListTag(text: String) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = ShoppingListColors.PrimaryContainer
+    ) {
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = ShoppingListColors.Primary,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
+    }
+}
+
+/** Kiválasztható chip (mértékegység, lista szűrő, cél lista). */
+@Composable
+private fun ChoiceChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit

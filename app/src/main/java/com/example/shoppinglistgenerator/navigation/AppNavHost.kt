@@ -115,26 +115,22 @@ fun AppNavHost(
             )
         }
 
-        // 6. Bevásárlólista létrehozása
-        composable<Screen.CreateShoppingList> { backStackEntry ->
-            val route: Screen.CreateShoppingList = backStackEntry.toRoute()
-            CreateShoppingListScreen(
-                pantryId = route.pantryId,
+        // 6. Bevásárlólista ("Lista" fül) – a felhasználó egyetlen listája
+        composable<Screen.CreateShoppingList> {
+            ShoppingListDetailScreen(
                 onBackClick = { navController.popBackStack() },
-                onListCreated = { newListId ->
-                    navController.navigate(Screen.ShoppingListDetail(listId = newListId)) {
-                        popUpTo<Screen.CreateShoppingList> { inclusive = true }
-                    }
+                onAddFromRecipesClick = { targetPantryId ->
+                    navController.navigate(Screen.AddRecipesToShoppingList(targetPantryId = targetPantryId))
                 }
             )
         }
 
-        // 7. Bevásárlólista részletei
-        composable<Screen.ShoppingListDetail> { backStackEntry ->
-            val route: Screen.ShoppingListDetail = backStackEntry.toRoute()
-            ShoppingListDetailScreen(
-                listId = route.listId,
-                onBackClick = { navController.popBackStack() }
+        // 7. Receptek hiányzó hozzávalóinak listára tétele
+        composable<Screen.AddRecipesToShoppingList> {
+            CreateShoppingListScreen(
+                onBackClick = { navController.popBackStack() },
+                // Sikeres hozzáadás után vissza a listához
+                onItemsAdded = { navController.popBackStack() }
             )
         }
 

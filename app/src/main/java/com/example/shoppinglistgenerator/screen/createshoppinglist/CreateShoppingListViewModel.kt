@@ -12,6 +12,7 @@ import com.example.shoppinglistgenerator.model.repository.AuthRepository
 import com.example.shoppinglistgenerator.model.repository.ItemRepository
 import com.example.shoppinglistgenerator.model.repository.PantryRepository
 import com.example.shoppinglistgenerator.model.repository.RecipeRepository
+import com.example.shoppinglistgenerator.model.repository.ShoppingListOption
 import com.example.shoppinglistgenerator.model.repository.ShoppingListRepository
 import com.example.shoppinglistgenerator.model.repository.UserRepository
 import com.example.shoppinglistgenerator.navigation.Screen
@@ -53,11 +54,13 @@ data class CreateShoppingListUiState(
     val selectedRecipeIds: Set<String> = emptySet(),
     val pantries: List<PantryOptionUi> = emptyList(),
     val selectedPantryId: String? = null,
+    /** null = a saját listára kerülnek a tételek, különben a kamra közös listájára. */
+    val targetPantryId: String? = null,
     val rows: List<IngredientRowUi> = emptyList(),
     val isCreating: Boolean = false,
     val errorMessage: String? = null,
-    /** Ha nem null, a lista elkészült, a screen erre navigál. */
-    val createdListId: String? = null
+    /** true, ha a hiányzó tételek felkerültek a listára; a screen ekkor visszanavigál. */
+    val itemsAdded: Boolean = false
 ) {
     val missingRows: List<IngredientRowUi>
         get() = rows.filter { it.missing > 0.0 }
@@ -70,7 +73,7 @@ class CreateShoppingListViewModel(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val route = savedStateHandle.toRoute<Screen.CreateShoppingList>()
+    private val route = savedStateHandle.toRoute<Screen.AddRecipesToShoppingList>()
 
     private val recipeRepository = RecipeRepository()
     private val itemRepository = ItemRepository()
@@ -79,7 +82,9 @@ class CreateShoppingListViewModel(
     private val userRepository = UserRepository()
     private val authRepository = AuthRepository()
 
-    private val _uiState = MutableStateFlow(CreateShoppingListUiState())
+    private val _uiState = MutableStateFlow(
+        CreateShoppingListUiState(targetPantryId = route.targetPantryId)
+    )
     val uiState: StateFlow<CreateShoppingListUiState> = _uiState.asStateFlow()
 
     private var loadedRecipes: List<RecipeDto> = emptyList()
@@ -100,20 +105,16 @@ class CreateShoppingListViewModel(
             val recipesResult = recipeRepository.getAllRecipes()
             loadedRecipes = recipesResult.getOrDefault(emptyList())
 
-            // A kamrák: a felhasználó saját kamrái + a navigációból érkező kamra.
-            // Ha a bejelentkezés most nem sikerül, a navigációból kapott kamrával dolgozunk tovább.
-            val uid = runCatching { authRepository.ensureAuthenticated() }.getOrNull()
-            val userPantryIds = uid
-                ?.let { userRepository.getUser(it).getOrNull()?.pantries }
-                .orEmpty()
-            val pantryIds = (userPantryIds + route.pantryId.orEmpty())
-                .filter { it.isNotBlank() }
-                .distinct()
+            // Kamra lista esetén csak az adott kamra készletével hasonlítunk össze.
+            // Saját lista esetén a felhasználó bármelyik kamrájával összevethető a recept.
+            val pantryIds = route.targetPantryId?.let { listOf(it) } ?: run {
+                val uid = runCatching { authRepository.ensureAuthenticated() }.getOrNull()
+                uid?.let { userRepository.getUser(it).getOrNull()?.pantries }.orEmpty()
+            }.filter { it.isNotBlank() }.distinct()
             val pantries = pantryRepository.getPantriesByIds(pantryIds).getOrDefault(emptyList())
             pantriesById = pantries.associateBy { it.pantryId }
 
-            val selectedPantryId = pantries.firstOrNull { it.pantryId == route.pantryId }?.pantryId
-                ?: pantries.firstOrNull()?.pantryId
+            val selectedPantryId = pantries.firstOrNull()?.pantryId
             selectedPantryId?.let { loadPantryItems(it) }
 
             _uiState.update {
@@ -172,7 +173,7 @@ class CreateShoppingListViewModel(
             runCatching {
                 // Offline módban a Firestore írás várakozna, ezért időkorlát van rajta.
                 withTimeout(CREATE_TIMEOUT_MS) {
-                    val creatorId = authRepository.ensureAuthenticated()
+                    val userId = authRepository.ensureAuthenticated()
                     // Csak a ténylegesen hiányzó mennyiségek kerülnek a listára.
                     val newItems = state.missingRows.map {
                         ItemDto(
@@ -183,21 +184,25 @@ class CreateShoppingListViewModel(
                             isPurchased = false
                         )
                     }
-                    shoppingListRepository.createShoppingList(
-                        pantryId = state.selectedPantryId.orEmpty(),
-                        creatorId = creatorId,
-                        recipeIds = state.selectedRecipeIds.toList(),
-                        newItems = newItems
+                    // A meglévő saját / kamra listához adjuk hozzá (ha még nincs, létrejön).
+                    val targetList = state.targetPantryId?.let { pantryId ->
+                        ShoppingListOption.pantry(pantryId, pantriesById[pantryId]?.name.orEmpty())
+                    } ?: ShoppingListOption.personal(userId)
+                    shoppingListRepository.addItemsToList(
+                        list = targetList,
+                        userId = userId,
+                        newItems = newItems,
+                        recipeIds = state.selectedRecipeIds.toList()
                     ).getOrThrow()
                 }
-            }.onSuccess { listId ->
-                _uiState.update { it.copy(isCreating = false, createdListId = listId) }
+            }.onSuccess {
+                _uiState.update { it.copy(isCreating = false, itemsAdded = true) }
             }.onFailure { e ->
-                Log.e(TAG, "Létrehozás sikertelen", e)
+                Log.e(TAG, "Listára tétel sikertelen", e)
                 _uiState.update {
                     it.copy(
                         isCreating = false,
-                        errorMessage = "A lista létrehozása nem sikerült (${e::class.simpleName})."
+                        errorMessage = "A tételek listára tétele nem sikerült (${e::class.simpleName})."
                     )
                 }
             }
