@@ -43,16 +43,19 @@ class ShoppingListRepository(
     private val itemsCollection = db.collection("items")
 
     /**
-     * A felhasználó által elérhető listák: mindig az első a saját lista, utána a kamrák listái.
+     * A felhasználó által elérhető listák: mindig az első a saját lista, utána a közös kamrák listái.
+     * Az a kamra, aminek a felhasználón kívül nincs más tagja, a saját kamrája: annak nincs
+     * külön listája, a "Saját" lista felel meg neki.
      * Ha a kamrák nem tölthetők be (pl. offline), csak a saját lista jelenik meg.
      */
     suspend fun getAvailableLists(userId: String): List<ShoppingListOption> {
         val pantryIds = userRepository.getUser(userId).getOrNull()?.pantries.orEmpty()
             .filter { it.isNotBlank() }
             .distinct()
-        val pantries = pantryRepository.getPantriesByIds(pantryIds).getOrDefault(emptyList())
+        val sharedPantries = pantryRepository.getPantriesByIds(pantryIds).getOrDefault(emptyList())
+            .filter { pantry -> pantry.users.any { it.isNotBlank() && it != userId } }
         return listOf(ShoppingListOption.personal(userId)) +
-                pantries.map { ShoppingListOption.pantry(it.pantryId, it.name) }
+                sharedPantries.map { ShoppingListOption.pantry(it.pantryId, it.name) }
     }
 
     /**
