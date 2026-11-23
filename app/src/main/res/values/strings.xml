@@ -74,7 +74,6 @@
     <string name="cook_success_with_list">Levontuk a hozzávalókat (%1$s), és %2$d hiányzó tételt felírtunk a bevásárlólistára.</string>
     <string name="cook_error_list">A hozzávalókat levontuk (%1$s), de a hiányzókat nem sikerült a bevásárlólistára tenni.</string>
     <string name="cook_missing_to_list">A hiányzókat felírjuk a(z) %1$s bevásárlólistájára.</string>
-    <string name="cook_personal_list_name">Saját</string>
     <string name="cook_add_to_list_button">Listára teszem</string>
     <string name="cook_error_no_pantry">Még nem tartozol egy kamrához sem.</string>
     <string name="cook_error_generic">Nem sikerült elkészíteni a receptet, próbáld újra.</string>

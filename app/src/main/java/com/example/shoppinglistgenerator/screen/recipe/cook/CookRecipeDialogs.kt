@@ -87,7 +87,7 @@ fun CookRecipeOverlay(
         )
         is CookStep.Confirm -> ConfirmCookDialog(
             pantryName = step.pantry.name,
-            listName = step.pantry.shoppingListName(),
+            listName = step.pantry.name,
             plan = step.plan,
             isSaving = false,
             onConfirm = viewModel::onConfirm,
@@ -95,7 +95,7 @@ fun CookRecipeOverlay(
         )
         is CookStep.Saving -> ConfirmCookDialog(
             pantryName = step.pantry.name,
-            listName = step.pantry.shoppingListName(),
+            listName = step.pantry.name,
             plan = step.plan,
             isSaving = true,
             onConfirm = {},
@@ -330,11 +330,6 @@ private fun AmountRow(name: String, amount: String) {
         )
     }
 }
-
-// Az alapértelmezett saját kamránál a "Saját" lista, egyébként a kamra közös listája
-@Composable
-private fun PantryDto.shoppingListName(): String =
-    if (isDefaultPersonal) stringResource(R.string.cook_personal_list_name) else name
 
 private fun formatAmount(quantity: Double, unit: String): String =
     "${DecimalFormat("#.##").format(quantity)} $unit".trim()

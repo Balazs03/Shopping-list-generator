@@ -107,11 +107,11 @@ class CookRecipeViewModel(
                 return@launch
             }
 
-            // 2. A hiányzók a kiválasztott kamra bevásárlólistájára
+            // 2. A hiányzók mindig a kiválasztott kamra bevásárlólistájára (a Saját kamránál is)
             runCatching {
                 val uid = authRepository.ensureAuthenticated()
                 shoppingListRepository.addItemsToList(
-                    list = pantry.shoppingList(uid),
+                    list = ShoppingListOption.pantry(pantry.pantryId, pantry.name),
                     userId = uid,
                     newItems = plan.missing.map {
                         ItemDto(name = it.name, unit = it.unit, quantity = roundAmount(it.quantity))
@@ -160,8 +160,3 @@ class CookRecipeViewModel(
 
 /** Saját kamra: az alapértelmezett személyes kamra, vagy aminek csak egy tagja van. */
 internal fun PantryDto.isPersonalPantry() = isDefaultPersonal || users.size <= 1
-
-// Az alapértelmezett saját kamránál a felhasználó saját listája, máskor a kamra közös listája
-private fun PantryDto.shoppingList(uid: String): ShoppingListOption =
-    if (isDefaultPersonal) ShoppingListOption.personal(uid)
-    else ShoppingListOption.pantry(pantryId, name)
