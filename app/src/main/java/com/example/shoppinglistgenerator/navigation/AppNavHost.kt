@@ -175,7 +175,7 @@ fun AppNavHost(
                     RecipeDetailScreen(
                         recipe = recipe,
                         onBackClick = { navController.popBackStack() },
-                        onCookClick = { recipe?.let { cookViewModel.onCookClick(it.ingredients) } }
+                        onCookClick = { recipe?.let { cookViewModel.onCookClick(it.id, it.ingredients) } }
                     )
                     CookRecipeOverlay(viewModel = cookViewModel)
                 }

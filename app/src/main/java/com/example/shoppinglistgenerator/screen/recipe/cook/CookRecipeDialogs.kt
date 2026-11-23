@@ -1,6 +1,16 @@
 package com.example.shoppinglistgenerator.screen.recipe.cook
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Kitchen
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Icon
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,7 +64,7 @@ fun CookRecipeOverlay(
 
     LaunchedEffect(uiState.messageRes) {
         uiState.messageRes?.let { res ->
-            snackbarHostState.showSnackbar(context.getString(res, uiState.messageArg))
+            snackbarHostState.showSnackbar(context.getString(res, *uiState.messageArgs.toTypedArray()))
             viewModel.onMessageShown()
         }
     }
@@ -77,6 +87,7 @@ fun CookRecipeOverlay(
         )
         is CookStep.Confirm -> ConfirmCookDialog(
             pantryName = step.pantry.name,
+            listName = step.pantry.shoppingListName(),
             plan = step.plan,
             isSaving = false,
             onConfirm = viewModel::onConfirm,
@@ -84,6 +95,7 @@ fun CookRecipeOverlay(
         )
         is CookStep.Saving -> ConfirmCookDialog(
             pantryName = step.pantry.name,
+            listName = step.pantry.shoppingListName(),
             plan = step.plan,
             isSaving = true,
             onConfirm = {},
@@ -99,37 +111,24 @@ private fun ChoosePantryDialog(
     onPantryChosen: (PantryDto) -> Unit,
     onDismiss: () -> Unit
 ) {
+    // A saját kamra kerüljön előre, utána név szerint
+    val sortedPantries = remember(pantries) {
+        pantries.sortedWith(compareByDescending<PantryDto> { it.isPersonal() }.thenBy { it.name })
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(imageVector = Icons.Outlined.Kitchen, contentDescription = null) },
         title = { Text(stringResource(R.string.cook_choose_pantry_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = stringResource(R.string.cook_choose_pantry_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                pantries.forEach { pantry ->
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onPantryChosen(pantry) }
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = pantry.name,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = stringResource(R.string.cook_pantry_members, pantry.users.size),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                sortedPantries.forEach { pantry ->
+                    PantryOptionCard(pantry = pantry, onClick = { onPantryChosen(pantry) })
                 }
             }
         },
@@ -141,14 +140,83 @@ private fun ChoosePantryDialog(
 }
 
 @Composable
+private fun PantryOptionCard(
+    pantry: PantryDto,
+    onClick: () -> Unit
+) {
+    val isPersonal = pantry.isPersonal()
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isPersonal) Icons.Outlined.Person else Icons.Outlined.Groups,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = pantry.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = if (isPersonal) {
+                        stringResource(R.string.cook_pantry_personal)
+                    } else {
+                        stringResource(R.string.cook_pantry_members, pantry.users.size)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+// Saját kamra: alapértelmezett személyes kamra, vagy egyszerűen csak egy tagja van
+private fun PantryDto.isPersonal() = isPersonalPantry()
+
+@Composable
 private fun ConfirmCookDialog(
     pantryName: String,
+    // A bevásárlólista neve, ahová a hiányzók kerülnek
+    listName: String,
     plan: CookPlan,
     isSaving: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val hasDeductions = plan.deductions.isNotEmpty()
+    val hasMissing = plan.missing.isNotEmpty()
+    // Akkor van mit jóváhagyni, ha levonunk valamit, vagy a hiányzókat listára tesszük
+    val canConfirm = hasDeductions || hasMissing
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -194,23 +262,33 @@ private fun ConfirmCookDialog(
                             )
                         }
                     }
+                    Text(
+                        text = stringResource(R.string.cook_missing_to_list, listName),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         },
         confirmButton = {
-            if (hasDeductions) {
+            if (canConfirm) {
                 TextButton(onClick = onConfirm, enabled = !isSaving) {
                     if (isSaving) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     } else {
-                        Text(stringResource(R.string.cook_confirm_button))
+                        Text(
+                            stringResource(
+                                if (hasDeductions) R.string.cook_confirm_button
+                                else R.string.cook_add_to_list_button
+                            )
+                        )
                     }
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isSaving) {
-                Text(stringResource(if (hasDeductions) R.string.cancel else R.string.close))
+                Text(stringResource(if (canConfirm) R.string.cancel else R.string.close))
             }
         }
     )
@@ -253,8 +331,28 @@ private fun AmountRow(name: String, amount: String) {
     }
 }
 
+// Az alapértelmezett saját kamránál a "Saját" lista, egyébként a kamra közös listája
+@Composable
+private fun PantryDto.shoppingListName(): String =
+    if (isDefaultPersonal) stringResource(R.string.cook_personal_list_name) else name
+
 private fun formatAmount(quantity: Double, unit: String): String =
     "${DecimalFormat("#.##").format(quantity)} $unit".trim()
+
+@Preview(showBackground = true)
+@Composable
+private fun ChoosePantryDialogPreview() {
+    ShoppingListGeneratorTheme {
+        ChoosePantryDialog(
+            pantries = listOf(
+                PantryDto(pantryId = "2", name = "Otthoni kamra", users = listOf("a", "b", "c")),
+                PantryDto(pantryId = "1", name = "Saját kamra", users = listOf("a"), isDefaultPersonal = true)
+            ),
+            onPantryChosen = {},
+            onDismiss = {}
+        )
+    }
+}
 
 @Preview(showBackground = true)
 @Composable
@@ -262,6 +360,7 @@ private fun ConfirmCookDialogPreview() {
     ShoppingListGeneratorTheme {
         ConfirmCookDialog(
             pantryName = "Otthoni kamra",
+            listName = "Otthoni kamra",
             plan = CookPlan(
                 deductions = listOf(
                     PantryDeduction(ItemDto(itemId = "1", name = "Spagetti", quantity = 500.0, unit = "g"), 300.0),

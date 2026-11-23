@@ -26,6 +26,15 @@ class UserRepository(
 
     /** Egy felhasználó profilja (pl. a kamráinak ID-jai). null, ha nincs ilyen profil. */
     suspend fun getUser(uid: String): Result<UserDto?> = runCatching {
-        collection.document(uid).get().await().toObject(UserDto::class.java)
+        val doc = collection.document(uid).get().await()
+        if (!doc.exists()) return@runCatching null
+        // Kézi beolvasás toObject() helyett: egyes user dokumentumokban "userId" mező is van,
+        // ami ütközik a @DocumentId annotációval, és a toObject() kivételt dobna rá
+        UserDto(
+            userId = doc.id,
+            email = doc.getString("email").orEmpty(),
+            name = doc.getString("name").orEmpty(),
+            pantries = (doc.get("pantries") as? List<*>).orEmpty().filterIsInstance<String>()
+        )
     }
 }
