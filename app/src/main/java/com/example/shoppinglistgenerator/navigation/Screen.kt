@@ -38,16 +38,18 @@ sealed interface Screen {
     data class AddItemsPantry(val pantryId: String = "otthoni") : Screen
 
     /**
-     * Bevásárlólista létrehozása (Adott kamrához/saját).
+     * A "Lista" fül: a felhasználó egyetlen bevásárlólistája
+     * (Tickerbox, szűrés, új elem, törlés). A név a bottom navigation miatt maradt.
      */
     @Serializable
     data class CreateShoppingList(val pantryId: String? = null) : Screen
 
     /**
-     * Bevásárlólista részletei (Tickerbox, szűrés, új elem, törlés).
+     * Receptek hiányzó hozzávalóinak listára tétele.
+     * [targetPantryId] = null: a saját listára; különben az adott kamra közös listájára.
      */
     @Serializable
-    data class ShoppingListDetail(val listId: String) : Screen
+    data class AddRecipesToShoppingList(val targetPantryId: String? = null) : Screen
 
     /**
      * Receptek listázása.

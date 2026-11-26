@@ -1,66 +1,138 @@
 package com.example.shoppinglistgenerator.model.repository
 
+import android.util.Log
 import com.example.shoppinglistgenerator.model.dto.ItemDto
 import com.example.shoppinglistgenerator.model.dto.ShoppingListDto
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
+/**
+ * Egy bevásárlólista, amit a felhasználó láthat.
+ *
+ * - Saját lista: [pantryId] = null, a dokumentum ID-ja a felhasználó UID-ja.
+ * - Kamra lista: [pantryId] = a kamra ID-ja, a dokumentum ID-ja "pantry_<pantryId>",
+ *   a kamra minden tagja ugyanazt a listát látja.
+ */
+data class ShoppingListOption(
+    val listId: String,
+    val pantryId: String?,
+    val name: String
+) {
+    val isPersonal: Boolean get() = pantryId == null
+
+    companion object {
+        fun personal(userId: String) = ShoppingListOption(userId, null, "Saját")
+        fun pantry(pantryId: String, pantryName: String) =
+            ShoppingListOption("pantry_$pantryId", pantryId, pantryName)
+    }
+}
+
 class ShoppingListRepository(
-    private val db: FirebaseFirestore = Firebase.firestore
+    private val db: FirebaseFirestore = Firebase.firestore,
+    private val itemRepository: ItemRepository = ItemRepository { db },
+    private val userRepository: UserRepository = UserRepository(db),
+    private val pantryRepository: PantryRepository = PantryRepository { db }
 ) {
     private val collection = db.collection("shopping_lists")
     private val itemsCollection = db.collection("items")
 
     /**
-     * Létrehoz egy bevásárlólistát a hiányzó tételekkel.
-     * A tételek új dokumentumként kerülnek az "items" gyűjteménybe (pantry = ""),
-     * a lista pedig az ID-jukat tárolja. Az egész egyetlen atomi batch-ben történik.
-     *
-     * @return az új lista ID-ja
+     * A felhasználó által elérhető listák: mindig az első a saját lista, utána a közös kamrák listái.
+     * Az a kamra, aminek a felhasználón kívül nincs más tagja, a saját kamrája: annak nincs
+     * külön listája, a "Saját" lista felel meg neki.
+     * Ha a kamrák nem tölthetők be (pl. offline), csak a saját lista jelenik meg.
      */
-    suspend fun createShoppingList(
-        pantryId: String,
-        creatorId: String,
-        recipeIds: List<String>,
-        newItems: List<ItemDto>
-    ): Result<String> = runCatching {
-        val batch = db.batch()
-
-        val itemIds = newItems.map { item ->
-            val itemRef = itemsCollection.document()
-            batch.set(itemRef, item.copy(itemId = itemRef.id, pantry = ""))
-            itemRef.id
-        }
-
-        val listRef = collection.document()
-        batch.set(
-            listRef,
-            ShoppingListDto(
-                listId = listRef.id,
-                pantry = pantryId,
-                creator = creatorId,
-                items = itemIds,
-                recipes = recipeIds
-            )
-        )
-
-        batch.commit().await()
-        listRef.id
+    suspend fun getAvailableLists(userId: String): List<ShoppingListOption> {
+        val pantryIds = userRepository.getUser(userId).getOrNull()?.pantries.orEmpty()
+            .filter { it.isNotBlank() }
+            .distinct()
+        val sharedPantries = pantryRepository.getPantriesByIds(pantryIds).getOrDefault(emptyList())
+            .filter { pantry -> pantry.users.any { it.isNotBlank() && it != userId } }
+        return listOf(ShoppingListOption.personal(userId)) +
+                sharedPantries.map { ShoppingListOption.pantry(it.pantryId, it.name) }
     }
 
-    /** Új tétel felvétele egy meglévő listára (új item dokumentum + ID a lista items tömbjébe). */
-    suspend fun addItem(listId: String, item: ItemDto): Result<Unit> = runCatching {
-        val itemRef = itemsCollection.document()
+    /**
+     * Tételek hozzáadása egy listához (ha még nincs ilyen lista, létrejön).
+     * Ha a listán már van ugyanilyen nevű és mértékegységű, még nem kipipált tétel,
+     * annak a mennyisége nő, különben új tétel kerül a listára.
+     *
+     * Offline is működik: ha a meglévő tételek nem olvashatók (pl. nincsenek a cache-ben),
+     * az összevonás kimarad, és új tételek jönnek létre. Az írás nem várja meg a szerver
+     * visszaigazolását: a Firestore helyben azonnal alkalmazza, és online állapotban feltölti.
+     */
+    suspend fun addItemsToList(
+        list: ShoppingListOption,
+        userId: String,
+        newItems: List<ItemDto>,
+        recipeIds: List<String> = emptyList()
+    ): Result<Unit> = runCatching {
+        val listRef = collection.document(list.listId)
+        val existingIds = runCatching { listRef.get().await() }
+            .onFailure { Log.w(TAG, "A lista nem olvasható (offline?), összevonás nélkül", it) }
+            .getOrNull()
+            ?.toObject(ShoppingListDto::class.java)
+            ?.items
+            .orEmpty()
+        val openItemsByKey = itemRepository.getItemsByIds(existingIds)
+            .onFailure { Log.w(TAG, "A tételek nem olvashatók (offline?), összevonás nélkül", it) }
+            .getOrDefault(emptyList())
+            .filter { !it.isPurchased }
+            .associateBy { itemKey(it.name, it.unit) }
+
         val batch = db.batch()
-        batch.set(itemRef, item.copy(itemId = itemRef.id, pantry = ""))
-        batch.update(collection.document(listId), "items", FieldValue.arrayUnion(itemRef.id))
-        batch.commit().await()
+        val createdIds = mutableListOf<String>()
+
+        // Az azonos alapanyagokat előbb összevonjuk, hogy egy hozzáadás ne hozzon létre duplikátumot.
+        newItems
+            .groupBy { itemKey(it.name, it.unit) }
+            .forEach { (key, group) ->
+                val quantity = group.sumOf { it.quantity }
+                val existing = openItemsByKey[key]
+                if (existing != null) {
+                    batch.update(
+                        itemsCollection.document(existing.itemId),
+                        "quantity", FieldValue.increment(quantity)
+                    )
+                } else {
+                    val itemRef = itemsCollection.document()
+                    batch.set(
+                        itemRef,
+                        group.first().copy(
+                            itemId = itemRef.id,
+                            quantity = quantity,
+                            pantry = "",
+                            isPurchased = false
+                        )
+                    )
+                    createdIds += itemRef.id
+                }
+            }
+
+        val listFields = mutableMapOf<String, Any>()
+        if (list.pantryId != null) {
+            listFields["pantry"] = list.pantryId
+        } else {
+            listFields["creator"] = userId
+        }
+        if (createdIds.isNotEmpty()) {
+            listFields["items"] = FieldValue.arrayUnion(*createdIds.toTypedArray())
+        }
+        if (recipeIds.isNotEmpty()) {
+            listFields["recipes"] = FieldValue.arrayUnion(*recipeIds.toTypedArray())
+        }
+        batch.set(listRef, listFields, SetOptions.merge())
+
+        // Nem várunk a szerverre: a commit() hívás után a változás helyben már látszik,
+        // a feltöltés a háttérben (offline esetén a kapcsolat visszatérésekor) történik.
+        batch.commit()
+            .addOnFailureListener { Log.e(TAG, "A lista mentése a szerverre nem sikerült", it) }
     }
 
     /** Tétel törlése a listáról (ID eltávolítása a tömbből + az item dokumentum törlése). */
@@ -71,14 +143,16 @@ class ShoppingListRepository(
         batch.commit().await()
     }
 
-    /**
-     * Valós idejű figyelés egy listára. null = a lista nem létezik.
-     * Ha a dokumentum még nincs a helyi cache-ben, nem emittálunk "nem létezik" értéket,
-     * nehogy offline indításkor hibásan "törölt listát" jelezzünk.
-     */
+    /** Valós idejű figyelés egy listára. null = még nincs ilyen lista (üresnek számít). */
     fun observeList(listId: String): Flow<ShoppingListDto?> =
         collection.document(listId)
             .snapshotFlow()
-            .filter { it.exists() || !it.metadata.isFromCache }
-            .map { it.toObject(ShoppingListDto::class.java) }
+            .map { if (it.exists()) it.toObject(ShoppingListDto::class.java) else null }
+
+    private fun itemKey(name: String, unit: String) =
+        name.trim().lowercase() to unit.trim().lowercase()
+
+    private companion object {
+        const val TAG = "ShoppingListRepository"
+    }
 }
