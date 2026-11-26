@@ -1,4 +1,5 @@
 package com.example.shoppinglistgenerator.model.dto
+
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.PropertyName
 
@@ -51,6 +52,9 @@ data class PantryDto(
     val name: String = "",
     val creator: String = "",
     val password: String = "",
+    @get:PropertyName("defaultPersonal")
+    @set:PropertyName("defaultPersonal")
+    var isDefaultPersonal: Boolean = false,
     val recipes: List<String> = emptyList(),
     val items: List<String> = emptyList(),
     val users: List<String> = emptyList()

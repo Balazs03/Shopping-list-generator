@@ -28,7 +28,7 @@ import com.example.shoppinglistgenerator.screen.recipe.RecipeViewModel
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: Screen = Screen.PantryItems()
+    startDestination: Screen = Screen.PantryDetail()
 ) {
     // Activity-scoped, shared by the recipe list and the recipe detail screen
     val recipeViewModel: RecipeViewModel = viewModel()
@@ -56,10 +56,15 @@ fun AppNavHost(
         // 2. Kamra létrehozása
         composable<Screen.CreatePantry> {
             CreatePantryScreen(
-                onBackClick = { navController.popBackStack() },
-                onCreateClick = { name, joinCode ->
-                    // TODO: trigger viewmodel to create, then:
-                    navController.popBackStack()
+                onBackClick = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.PantryDetail())
+                    }
+                },
+                onCreated = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.PantryDetail())
+                    }
                 }
             )
         }
@@ -68,19 +73,20 @@ fun AppNavHost(
         composable<Screen.PantryDetail> { backStackEntry ->
             val route: Screen.PantryDetail = backStackEntry.toRoute()
             PantryDetailScreen(
-                // Note: The real view model should load pantryId = route.pantryId
                 onOpenPantry = { pantryId ->
                     navController.navigate(Screen.PantryItems(pantryId = pantryId))
                 },
-                onDeletePantry = {
-                    navController.navigate(Screen.PantryItems()) {
-                        popUpTo<Screen.PantryItems> { inclusive = true }
-                    }
+                onDeletePantry = { pantryId ->
+                    // Firestore snapshot listener automatikusan frissíti a listát
                 },
-                onLeavePantry = {
-                    navController.navigate(Screen.PantryItems()) {
-                        popUpTo<Screen.PantryItems> { inclusive = true }
-                    }
+                onLeavePantry = { pantryId ->
+                    // Firestore snapshot listener automatikusan frissíti a listát
+                },
+                onAddPantryClick = {
+                    navController.navigate(Screen.CreatePantry)
+                },
+                onJoinPantryClick = {
+                    navController.navigate(Screen.PantryJoin)
                 }
             )
         }

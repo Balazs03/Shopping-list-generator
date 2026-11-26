@@ -16,11 +16,48 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun CreatePantryScreen(
+    viewModel: CreatePantryViewModel = viewModel(),
+    currentPantryCount: Int = 1,
     onBackClick: () -> Unit = {},
-    onCreateClick: (name: String, joinCode: String) -> Unit = { _, _ -> }
+    onCreated: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState.isCreated) {
+        if (uiState.isCreated) {
+            onCreated()
+        }
+    }
+
+    CreatePantryContent(
+        pantryName = uiState.pantryName,
+        joinCode = uiState.joinCode,
+        isLoading = uiState.isLoading,
+        errorMessage = uiState.errorMessage,
+        onPantryNameChange = viewModel::onPantryNameChange,
+        onJoinCodeChange = viewModel::onJoinCodeChange,
+        onBackClick = onBackClick,
+        onCreateClick = {
+            viewModel.createSharedPantry(currentPantryCount)
+        }
+    )
+}
+
+@Composable
+fun CreatePantryContent(
+    pantryName: String = "Otthoni kamra",
+    joinCode: String = "KERT26",
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onPantryNameChange: (String) -> Unit = {},
+    onJoinCodeChange: (String) -> Unit = {},
+    onBackClick: () -> Unit = {},
+    onCreateClick: () -> Unit = {}
 ) {
     val backgroundColor = Color(0xFFF7F7F2)
     val cardContainerLight = Color(0xFFECEEE4)
@@ -28,9 +65,6 @@ fun CreatePantryScreen(
     val textPrimary = Color(0xFF1E211D)
     val textSecondary = Color(0xFF5C615A)
     val borderLight = Color(0xFFE0E2D8)
-
-    var pantryName by remember { mutableStateOf("Otthoni kamra") }
-    var passCode by remember { mutableStateOf("KERT26") }
 
     Scaffold(
         containerColor = backgroundColor
@@ -72,9 +106,18 @@ fun CreatePantryScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             OutlinedTextField(
                 value = pantryName,
-                onValueChange = { pantryName = it },
+                onValueChange = onPantryNameChange,
                 label = { Text("Kamra neve", fontSize = 12.sp) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -90,8 +133,8 @@ fun CreatePantryScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = passCode,
-                onValueChange = { passCode = it },
+                value = joinCode,
+                onValueChange = onJoinCodeChange,
                 label = { Text("Jelkód", fontSize = 12.sp) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -115,15 +158,23 @@ fun CreatePantryScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { onCreateClick(pantryName, passCode) },
-                enabled = pantryName.isNotBlank() && passCode.isNotBlank(),
+                onClick = onCreateClick,
+                enabled = !isLoading && pantryName.isNotBlank() && joinCode.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = greenButtonColor),
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text("Létrehozás", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Létrehozás", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -191,5 +242,5 @@ fun CreatePantryScreen(
 @Preview(showBackground = true)
 @Composable
 fun CreatePantryScreenPreview() {
-    CreatePantryScreen()
+    CreatePantryContent()
 }
