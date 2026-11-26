@@ -186,9 +186,10 @@ open class PantryRepository(
             if (uid in pantry.users || pantry.pantryId in userPantries) {
                 throw PantryJoinException.AlreadyMember()
             }
-            if (userPantries.size >= MAX_PANTRIES_PER_USER) {
-                throw PantryJoinException.LimitReached()
-            }
+            // Limit ellenőrzés kiszedve/kikommentelve, mivel a UI már letiltja a gombot
+            // if (userPantries.size >= MAX_PANTRIES_PER_USER) {
+            //     throw PantryJoinException.LimitReached()
+            // }
 
             transaction.update(pantryRef, "users", FieldValue.arrayUnion(uid))
             // merge: akkor is működjön, ha a user dokumentum még nem jött létre
