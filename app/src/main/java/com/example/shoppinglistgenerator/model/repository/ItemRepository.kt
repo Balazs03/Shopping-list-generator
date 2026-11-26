@@ -26,6 +26,21 @@ open class ItemRepository(
             snapshot.toObjects<ItemDto>().sortedBy { it.name.lowercase() }
         }
 
+    // Egyszeri lekérdezés egy kamra összes alapanyagáról (pl. recept elkészítésekor)
+    open suspend fun getItemsByPantry(pantryId: String): Result<List<ItemDto>> = runCatching {
+        collection.whereEqualTo("pantry", pantryId).get().await().toObjects(ItemDto::class.java)
+    }
+
+    // Több tétel mennyiségének módosítása egyetlen batch-ben (itemId -> új mennyiség)
+    open suspend fun updateQuantities(quantities: Map<String, Double>): Result<Unit> = runCatching {
+        if (quantities.isEmpty()) return@runCatching
+        val batch = db.batch()
+        quantities.forEach { (itemId, quantity) ->
+            batch.update(collection.document(itemId), "quantity", quantity)
+        }
+        batch.commit().await()
+    }
+
     // Törli az alapanyagot, és kiveszi az ID-ját a kamra items tömbjéből (egy batch-ben)
     suspend fun deleteItem(item: ItemDto): Result<Unit> = runCatching {
         val batch = db.batch()
